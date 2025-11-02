@@ -1,5 +1,5 @@
 struct DSU {
-    vector<Int> f, siz;
+    vector<int> f, siz;
 
     DSU() {}
     DSU(int n) {
@@ -30,4 +30,5 @@ struct DSU {
     int size(int x) {
         return siz[find(x)];
     }
+
 };
