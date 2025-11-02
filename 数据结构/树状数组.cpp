@@ -4,18 +4,18 @@ struct BIT {
     int n;
 
     BIT() {}
-    BIT(int n) {
-        init(n);
+    BIT(int n_ = 0) {
+        init(n_);
     }
 
-    void init(int n) {
-        this->n = n;
-        a.resize(n + 1);
+    void init(int n_) {
+        n = n_;
+        a.assign(n + 1, Int{});
     }
 
-    void add(int x, int k) {
+    void add(int x, const Int &v) {
         for (; x <= n; x += x & -x) {
-            a[x] += k;
+            a[x] += v;
         }
     }
 
@@ -35,15 +35,19 @@ struct BIT {
         return ask(y) - ask(x - 1);
     }
 
-    Int kth(int k) {
-        Int ans = 0;
-        for (int i = __lg(n); i >= 0; i--) {
-            Int val = ans + (1 << i);
-            if (val < n && a[val] < k) {
-                k -= a[val];
-                ans = val;
+    int kth(Int k) const {
+        if (k <= Int{}) return 1;
+        int pos = 0;
+        Int cur = Int{};
+        int bit = 1;
+        while ((bit << 1) <= n) bit <<= 1;
+        for (; bit; bit >>= 1) {
+            int nxt = pos + bit;
+            if (nxt <= n && cur + a[nxt] < k) {
+                cur += a[nxt];
+                pos = nxt;
             }
         }
-        return ans + 1;
+        return pos + 1;
     }
 };
