@@ -47,7 +47,7 @@ struct MInt {
 	}
 	constexpr MInt inv() const {
 		assert(x != 0);
-		return power(*this, getMod() - 2);
+		return ksm(*this, getMod() - 2);
 	}
 	constexpr MInt &operator*=(MInt rhs) & {
 		x = 1LL * x * rhs.x % getMod();
@@ -109,3 +109,4 @@ constexpr MInt<P> CInv = MInt<P>(V).inv();
 
 constexpr int MOD = 1000000007;
 using Z = MInt<MOD>;
+
