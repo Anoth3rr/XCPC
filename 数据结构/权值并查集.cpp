@@ -4,7 +4,7 @@ struct DSU {
     vector<Int> w;
 
     DSU(int n_) {
-        init(n);
+        init(n_);
     }
 
     void init(int n) {
@@ -21,24 +21,29 @@ struct DSU {
         return f[x] = fx;
     }
 
-    bool merge(int x, int y, int diff) {
+    Int get(int x) {
+        find(x);
+        return w[x];
+    }
+
+    bool merge(int x, int y, Int diff) {
         int fx = find(x), fy = find(y);
         if (fx == fy) {
-            return (w[y] - w[x] == diff);
+            return (w[x] - w[y] == diff);
         }
         if (siz[fx] < siz[fy]) {
-            swap(x, y);
-            swap(fx, fy);
-            diff = -diff;
+            f[fx] = fy;
+            w[fx] = diff - w[x] + w[y];
+            siz[fy] += siz[fx];
+        } else {
+            f[fy] = fx;
+            w[fy] = w[x] - w[y] - diff;
+            siz[fx] += siz[fy];
         }
-        f[fy] = fx;
-        w[fy] = w[x] - w[y] + diff;
-        siz[fx] += siz[fy];
         return true;
     }
 
-    int diff(int x, int y) {
-        if (find(x) != find(y)) return 1e9;
-        return w[y] - w[x];
+    bool same(int x, int y) {
+        return find(x) == find(y);
     }
 };
