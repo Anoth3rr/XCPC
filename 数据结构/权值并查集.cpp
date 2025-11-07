@@ -4,7 +4,7 @@ struct DSU {
     vector<Int> w;
 
     DSU(int n_) {
-        nit(n);
+        init(n);
     }
 
     void init(int n) {
