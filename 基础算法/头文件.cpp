@@ -35,7 +35,7 @@ void init() {
 }
 
 void solve() {
-    
+
 }
 
 int main() {
@@ -49,6 +49,6 @@ int main() {
     for (int _ = 1; _ <= t; ++_) {
         solve();
     }
-    return 0;
 
+    return 0;
 }
