@@ -97,7 +97,7 @@ private:
     }
 
     Info<Int> ask(int x, int l, int r, int lq, int rq) {
-        if (rq < l || lq > r) return {0};
+        if (rq < l || lq > r) return {Info<Int>()};
         if (lq <= l && r <= rq) return info[x];
         push_down(x);
         int mid = (l + r) >> 1;

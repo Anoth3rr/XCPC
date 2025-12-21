@@ -2,7 +2,7 @@ struct Comb {
     int n;
     vector<Z> _fac, _inv;
 
-    Comb() : _fac{1}, _inv{0} {}
+    Comb() : n(0), _fac{1}, _inv{0} {}
     Comb(int n) : Comb() {
         init(n);
     }

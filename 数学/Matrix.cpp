@@ -76,35 +76,3 @@ struct Matrix {
         return res;
     }
 };
-
-template<class T>
-T determinant(int n, Matrix<T>& mat) {
-    T det(1, 0);
-    int sign = 1;
-
-    for (int i = 0; i < n; i++) {
-        int pivot = i;
-        while (pivot < n && mat[pivot][i].isZero()) pivot++;
-        if (pivot == n) return T();
-
-        if (pivot != i) {
-            swap(mat[i], mat[pivot]);
-            sign = -sign;
-        }
-
-        det *= mat[i][i];
-        for (int j = i + 1; j < n; j++) {
-            if (!mat[j][i].isZero()) {
-                T factor = mat[j][i] / mat[i][i];
-                for (int k = i; k < n; k++) {
-                    mat[j][k] -= factor * mat[i][k];
-                }
-            }
-        }
-    }
-
-    if (sign == -1) {
-        det = T() - det;
-    }
-    return det;
-}
