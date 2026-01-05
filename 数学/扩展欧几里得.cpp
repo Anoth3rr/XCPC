@@ -6,12 +6,12 @@ template <class T> T ceil(const T &a, const T &b) {
 	assert(b != 0);
 	return sign(a) * sign(b) > 0 ? (A + B - 1) / B : -A / B;
 }
-int exgcd(int a, int b, int &x, int &y) {
+template <class T> T exgcd(T a, T b, T &x, T &y) {
 	if (!b) {
 		x = 1, y = 0;
 		return a;
 	}
-	int d = exgcd(b, a % b, y, x);
+	T d = exgcd(b, a % b, y, x);
 	y -= a / b * x;
 	return d;
 }

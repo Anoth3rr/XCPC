@@ -108,4 +108,3 @@ template<int V, int P>
 constexpr MInt<P> CInv = MInt<P>(V).inv();
 
 using Z = MInt<MOD>;
-

@@ -13,7 +13,7 @@ struct BIT {
         a.resize(n + 1);
     }
 
-    void add(int x, int k) {
+    void add(int x, Int k) {
         for (; x <= n; x += x & -x) {
             a[x] += k;
         }
