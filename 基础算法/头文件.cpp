@@ -1,11 +1,14 @@
-//Another
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 #define pb push_back
+#define pf push_front
+#define pob pop_back
+#define pof pop_front
 #define eb emplace_back
 #define fi first
 #define se second
 #define all(a) a.begin(), a.end()
 #define rall(a) a.rbegin(), a.rend()
+#define endl "\n"
 using namespace std;
 
 using ll = long long;
@@ -23,9 +26,6 @@ constexpr ll INF = (ll)2e18 + 9;
 // constexpr ll MOD = 1e9 + 7;
 constexpr ll MOD = 998244353;
 constexpr ld eps = 1e-10;
-
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-ull randint(ull l, ull r) {uniform_int_distribution<unsigned long long> dist(l, r); return dist(rng);}
 
 void init() {
 
