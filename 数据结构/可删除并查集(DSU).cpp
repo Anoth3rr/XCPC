@@ -11,7 +11,8 @@ struct DSU {
         iota(f.begin(), f.end(), 0);
         siz.assign(n + 1, 1);
         id.resize(n + 1);
-        for (int i = 1; i <= n; ++i) id[i] = i;
+        for (int i = 1; i <= n; ++i)
+            id[i] = i;
     }
 
     int add() {
@@ -31,9 +32,12 @@ struct DSU {
     }
 
     bool merge2(int a, int b) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        if (siz[a] < siz[b]) swap(a, b);
+        a = find(a);
+        b = find(b);
+        if (a == b)
+            return false;
+        if (siz[a] < siz[b])
+            swap(a, b);
         f[b] = a;
         siz[a] += siz[b];
         return true;

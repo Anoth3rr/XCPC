@@ -1,4 +1,4 @@
-template<class Int>
+template <class Int = ll>
 struct Tag {
     Int v = 0;
     void operator+=(const Tag<Int> &o) {
@@ -9,52 +9,50 @@ struct Tag {
     }
 };
 
-template<class Int>
+template <class Int = ll>
 struct Info {
-    Int mx = numeric_limits<Int>::min(), mn = numeric_limits<Int>::max();
+    Int val = 0;
     int l, r;
     Info operator+(const Info<Int> &o) const {
         Info res;
         res.l = l;
         res.r = o.r;
-        res.mx = max(mx, o.mx);
-        res.mn = min(mn, o.mn);
+        res.val = val + o.val;
         return res;
     }
     void operator+=(const Tag<Int> &o) {
-        mx += o.v;
-        mn += o.v;
+        val += o.v * (r - l + 1);
     }
     bool check() {
         return l != r;
     }
 };
 
-template<class Int>
+template <class Int = ll>
 class SegTree {
-private:
+  private:
     vector<Info<Int>> info;
     vector<Tag<Int>> tag;
     int n;
 
-    int ls(int x) {return x << 1;}
-    int rs(int x) {return x << 1 | 1;}
+    int ls(int x) { return x << 1; }
+    int rs(int x) { return x << 1 | 1; }
 
     void print(int x, int l, int r) {
-        cout << x << ":[" << l << "," << r << "],mx:" << info[x].mx << ",tag:" << tag[x].v << "\n";
-        if (l == r) return;
-        int mid = (l + r) >> 1;
+        cout << x << ":[" << l << "," << r << "],val:" << info[x].val << ",tag:" << tag[x].v << "\n";
+        if (l == r)
+            return;
+        int mid = l + r >> 1;
         print(ls(x), l, mid);
         print(rs(x), mid + 1, r);
     }
 
-    template<class Array>
+    template <class Array>
     void build(int x, int l, int r, Array &data) {
         if (l == r) {
             info[x].l = l;
             info[x].r = r;
-            info[x].mx = data[l];
-            info[x].mn = data[l];
+            info[x].val = data[l];
             return;
         }
         int mid = (l + r) >> 1;
@@ -74,7 +72,8 @@ private:
     }
 
     void update(int x, int l, int r, int lq, int rq, Tag<Int> v) {
-        if (rq < l || lq > r) return;
+        if (rq < l || lq > r)
+            return;
         if (lq <= l && r <= rq) {
             info[x] += v;
             tag[x] += v;
@@ -88,10 +87,10 @@ private:
     }
 
     void modify(int x, int l, int r, int pos, Int v) {
-        if (r < pos || l > pos) return;
+        if (r < pos || l > pos)
+            return;
         if (l == r && l == pos) {
-            info[x].mx = v;
-            info[x].mn = v;
+            info[x].val = v;
             return;
         }
         int mid = (l + r) >> 1;
@@ -101,21 +100,24 @@ private:
     }
 
     Info<Int> ask(int x, int l, int r, int lq, int rq) {
-        if (rq < l || lq > r) return {Info<Int>()};
-        if (lq <= l && r <= rq) return info[x];
+        if (rq < l || lq > r)
+            return {Info<Int>()};
+        if (lq <= l && r <= rq)
+            return info[x];
         push_down(x);
         int mid = (l + r) >> 1;
         auto ans = ask(ls(x), l, mid, lq, rq) + ask(rs(x), mid + 1, r, lq, rq);
         return ans;
     }
-public:
-    SegTree(int n_): n(n_), info(4 * n_ + 1), tag(4 * n_ + 1) {}
+
+  public:
+    SegTree(int n_) : n(n_), info(4 * n_ + 1), tag(4 * n_ + 1) {}
 
     void print() {
         print(1, 1, n);
     }
 
-    template<class Array>
+    template <class Array>
     void build(Array &data) {
         build(1, 1, n, data);
     }

@@ -1,10 +1,10 @@
-template<class T>
+template <class T>
 struct Point {
     T x;
     T y;
     Point(const T &x_ = 0, const T &y_ = 0) : x(x_), y(y_) {}
 
-    template<class U>
+    template <class U>
     operator Point<U>() {
         return Point<U>(U(x), U(y));
     }
@@ -57,59 +57,59 @@ struct Point {
     }
 };
 
-template<class T>
+template <class T>
 struct Line {
     Point<T> a;
     Point<T> b;
     Line(const Point<T> &a_ = Point<T>(), const Point<T> &b_ = Point<T>()) : a(a_), b(b_) {}
 };
 
-template<class T>
+template <class T>
 T dot(const Point<T> &a, const Point<T> &b) {
     return a.x * b.x + a.y * b.y;
 }
 
-template<class T>
+template <class T>
 T cross(const Point<T> &a, const Point<T> &b) {
     return a.x * b.y - a.y * b.x;
 }
 
-template<class T>
+template <class T>
 T square(const Point<T> &p) {
     return dot(p, p);
 }
 
-template<class T>
+template <class T>
 double length(const Point<T> &p) {
     return sqrt(square(p));
 }
 
-template<class T>
+template <class T>
 double length(const Line<T> &l) {
     return length(l.a - l.b);
 }
 
-template<class T>
+template <class T>
 Point<T> normalize(const Point<T> &p) {
     return p / length(p);
 }
 
-template<class T>
+template <class T>
 bool parallel(const Line<T> &l1, const Line<T> &l2) {
     return cross(l1.b - l1.a, l2.b - l2.a) == 0;
 }
 
-template<class T>
+template <class T>
 double distance(const Point<T> &a, const Point<T> &b) {
     return length(a - b);
 }
 
-template<class T>
+template <class T>
 double distancePL(const Point<T> &p, const Line<T> &l) {
     return abs(cross(l.a - l.b, l.a - p)) / length(l);
 }
 
-template<class T>
+template <class T>
 double distancePS(const Point<T> &p, const Line<T> &l) {
     if (dot(p - l.a, l.b - l.a) < 0) {
         return distance(p, l.a);
@@ -120,33 +120,32 @@ double distancePS(const Point<T> &p, const Line<T> &l) {
     return distancePL(p, l);
 }
 
-template<class T>
+template <class T>
 Point<T> rotate(const Point<T> &a) {
     return Point(-a.y, a.x);
 }
 
-template<class T>
+template <class T>
 int sgn(const Point<T> &a) {
     return a.y > 0 || (a.y == 0 && a.x > 0) ? 1 : -1;
 }
 
-template<class T>
+template <class T>
 bool pointOnLineLeft(const Point<T> &p, const Line<T> &l) {
     return cross(l.b - l.a, p - l.a) > 0;
 }
 
-template<class T>
+template <class T>
 Point<T> lineIntersection(const Line<T> &l1, const Line<T> &l2) {
     return l1.a + (l1.b - l1.a) * (cross(l2.b - l2.a, l1.a - l2.a) / cross(l2.b - l2.a, l1.a - l1.b));
 }
 
-template<class T>
+template <class T>
 bool pointOnSegment(const Point<T> &p, const Line<T> &l) {
-    return cross(p - l.a, l.b - l.a) == 0 && min(l.a.x, l.b.x) <= p.x && p.x <= max(l.a.x, l.b.x)
-           && min(l.a.y, l.b.y) <= p.y && p.y <= max(l.a.y, l.b.y);
+    return cross(p - l.a, l.b - l.a) == 0 && min(l.a.x, l.b.x) <= p.x && p.x <= max(l.a.x, l.b.x) && min(l.a.y, l.b.y) <= p.y && p.y <= max(l.a.y, l.b.y);
 }
 
-template<class T>
+template <class T>
 bool pointInPolygon(const Point<T> &a, const vector<Point<T>> &p) {
     int n = p.size();
     for (int i = 0; i < n; i++) {
@@ -170,7 +169,7 @@ bool pointInPolygon(const Point<T> &a, const vector<Point<T>> &p) {
     return t == 1;
 }
 
-template<class T>
+template <class T>
 tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line<T> &l2) {
     if (max(l1.a.x, l1.b.x) < min(l2.a.x, l2.b.x)) {
         return {0, Point<T>(), Point<T>()};
@@ -225,7 +224,7 @@ tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line
     }
 }
 
-template<class T>
+template <class T>
 double distanceSS(const Line<T> &l1, const Line<T> &l2) {
     if (get<0>(segmentIntersection(l1, l2)) != 0) {
         return 0.0;
@@ -233,7 +232,7 @@ double distanceSS(const Line<T> &l1, const Line<T> &l2) {
     return min({distancePS(l1.a, l2), distancePS(l1.b, l2), distancePS(l2.a, l1), distancePS(l2.b, l1)});
 }
 
-template<class T>
+template <class T>
 bool segmentInPolygon(const Line<T> &l, const vector<Point<T>> &p) {
     int n = p.size();
     if (!pointInPolygon(l.a, p)) {
@@ -262,44 +261,37 @@ bool segmentInPolygon(const Line<T> &l, const vector<Point<T>> &p) {
             }
         } else {
             if (p1 != u && p1 != v) {
-                if (pointOnLineLeft(l.a, Line(v, u))
-                        || pointOnLineLeft(l.b, Line(v, u))) {
+                if (pointOnLineLeft(l.a, Line(v, u)) || pointOnLineLeft(l.b, Line(v, u))) {
                     return false;
                 }
             } else if (p1 == v) {
                 if (l.a == v) {
                     if (pointOnLineLeft(u, l)) {
-                        if (pointOnLineLeft(w, l)
-                                && pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, l) && pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     } else {
-                        if (pointOnLineLeft(w, l)
-                                || pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, l) || pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     }
                 } else if (l.b == v) {
                     if (pointOnLineLeft(u, Line(l.b, l.a))) {
-                        if (pointOnLineLeft(w, Line(l.b, l.a))
-                                && pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, Line(l.b, l.a)) && pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     } else {
-                        if (pointOnLineLeft(w, Line(l.b, l.a))
-                                || pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, Line(l.b, l.a)) || pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     }
                 } else {
                     if (pointOnLineLeft(u, l)) {
-                        if (pointOnLineLeft(w, Line(l.b, l.a))
-                                || pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, Line(l.b, l.a)) || pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     } else {
-                        if (pointOnLineLeft(w, l)
-                                || pointOnLineLeft(w, Line(u, v))) {
+                        if (pointOnLineLeft(w, l) || pointOnLineLeft(w, Line(u, v))) {
                             return false;
                         }
                     }
@@ -310,7 +302,7 @@ bool segmentInPolygon(const Line<T> &l, const vector<Point<T>> &p) {
     return true;
 }
 
-template<class T>
+template <class T>
 vector<Point<T>> hp(vector<Line<T>> lines) {
     sort(lines.begin(), lines.end(), [&](auto l1, auto l2) {
         auto d1 = l1.b - l1.a;

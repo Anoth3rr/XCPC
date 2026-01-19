@@ -1,4 +1,4 @@
-template<class Int>
+template <class Int = ll>
 struct ST {
     const int n, k;
     vector<vector<pair<Int, int>>> Max;
@@ -7,7 +7,7 @@ struct ST {
         Max.resize(k + 1, vector<pair<Int, int>>(n + 1));
         Min.resize(k + 1, vector<pair<Int, int>>(n + 1));
     }
-    template<class Array>
+    template <class Array>
     void init(Array &a) {
         for (int i = 1; i <= n; i++) {
             Max[0][i] = {a[i], -i};

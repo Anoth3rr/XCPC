@@ -10,9 +10,10 @@ void init(int n) {
     primes.push_back(1);
 
     for (int i = 2; i <= maxn; i++) {
-        if (spf[i] == 0) spf[i] = i, phi[i] = i - 1, mu[i] = -1, primes.push_back(i);
+        if (spf[i] == 0)
+            spf[i] = i, phi[i] = i - 1, mu[i] = -1, primes.push_back(i);
 
-        for (int j = 1; primes[j]*i <= maxn; j++) {
+        for (int j = 1; primes[j] * i <= maxn; j++) {
             int m = primes[j] * i;
             spf[m] = primes[j];
 

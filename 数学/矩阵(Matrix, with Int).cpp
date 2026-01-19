@@ -1,4 +1,4 @@
-template<class Int>
+template <class Int>
 struct Matrix {
     int n, m;
     vector<vector<Int>> a;
@@ -13,14 +13,14 @@ struct Matrix {
         return I;
     }
 
-    vector<Int>& operator[](int i) {
+    vector<Int> &operator[](int i) {
         return a[i];
     }
-    const vector<Int>& operator[](int i) const {
+    const vector<Int> &operator[](int i) const {
         return a[i];
     }
 
-    Matrix operator + (const Matrix& other) const {
+    Matrix operator+(const Matrix &other) const {
         assert(n == other.n && m == other.m);
         Matrix res(n, m);
         for (int i = 0; i < n; i++)
@@ -29,7 +29,7 @@ struct Matrix {
         return res;
     }
 
-    Matrix operator - (const Matrix& other) const {
+    Matrix operator-(const Matrix &other) const {
         assert(n == other.n && m == other.m);
         Matrix res(n, m);
         for (int i = 0; i < n; i++)
@@ -38,7 +38,7 @@ struct Matrix {
         return res;
     }
 
-    Matrix operator*(const Matrix& other) const {
+    Matrix operator*(const Matrix &other) const {
         assert(m == other.n);
         Matrix res(n, other.m, Int(0));
         for (int i = 0; i < n; i++)
@@ -48,7 +48,7 @@ struct Matrix {
         return res;
     }
 
-    Matrix operator*(const Int& k) const {
+    Matrix operator*(const Int &k) const {
         Matrix res(n, m);
         for (int i = 0; i < n; i++)
             for (int j = 0; j < m; j++)
@@ -69,7 +69,8 @@ struct Matrix {
         Matrix base = *this;
         Matrix res = identity(n);
         while (exp > 0) {
-            if (exp & 1) res = res * base;
+            if (exp & 1)
+                res = res * base;
             base = base * base;
             exp >>= 1;
         }
@@ -77,15 +78,17 @@ struct Matrix {
     }
 };
 
-template<class T>
-T determinant(int n, Matrix<T>& mat) {
+template <class T>
+T determinant(int n, Matrix<T> &mat) {
     T det(1, 0);
     int sign = 1;
 
     for (int i = 0; i < n; i++) {
         int pivot = i;
-        while (pivot < n && mat[pivot][i].isZero()) pivot++;
-        if (pivot == n) return T();
+        while (pivot < n && mat[pivot][i].isZero())
+            pivot++;
+        if (pivot == n)
+            return T();
 
         if (pivot != i) {
             swap(mat[i], mat[pivot]);

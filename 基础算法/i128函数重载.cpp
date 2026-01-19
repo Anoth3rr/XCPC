@@ -1,6 +1,26 @@
-ostream &operator<<(ostream &os, i128 n) {
-    if (n == 0) {
+istream &operator>>(istream &is, __int128 &n) {
+    string s;
+    is >> s;
+    n = 0;
+    int sign = 1;
+    int i = 0;
+    if (s[0] == '-') {
+        sign = -1;
+        i = 1;
+    }
+    for (; i < (int)s.size(); i++) {
+        n = n * 10 + (s[i] - '0');
+    }
+    n *= sign;
+    return is;
+}
+
+ostream &operator<<(ostream &os, __int128 n) {
+    if (n == 0)
         return os << 0;
+    if (n < 0) {
+        os << '-';
+        n = -n;
     }
     string s;
     while (n > 0) {

@@ -1,4 +1,4 @@
-template<class Int>
+template <class Int = ll>
 struct DSU {
     vector<int> f, siz;
     vector<Int> w;
@@ -15,7 +15,8 @@ struct DSU {
     }
 
     int find(int x) {
-        if (f[x] == x) return x;
+        if (f[x] == x)
+            return x;
         int fx = find(f[x]);
         w[x] += w[f[x]];
         return f[x] = fx;
