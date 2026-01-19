@@ -1,8 +1,8 @@
-template <class T>
+template <class Int>
 struct Point {
-    T x;
-    T y;
-    Point(const T &x_ = 0, const T &y_ = 0) : x(x_), y(y_) {}
+    Int x;
+    Int y;
+    Point(const Int &x_ = 0, const Int &y_ = 0) : x(x_), y(y_) {}
 
     template <class U>
     operator Point<U>() {
@@ -18,12 +18,12 @@ struct Point {
         y -= p.y;
         return *this;
     }
-    Point &operator*=(const T &v) & {
+    Point &operator*=(const Int &v) & {
         x *= v;
         y *= v;
         return *this;
     }
-    Point &operator/=(const T &v) & {
+    Point &operator/=(const Int &v) & {
         x /= v;
         y /= v;
         return *this;
@@ -37,13 +37,13 @@ struct Point {
     friend Point operator-(Point a, const Point &b) {
         return a -= b;
     }
-    friend Point operator*(Point a, const T &b) {
+    friend Point operator*(Point a, const Int &b) {
         return a *= b;
     }
-    friend Point operator/(Point a, const T &b) {
+    friend Point operator/(Point a, const Int &b) {
         return a /= b;
     }
-    friend Point operator*(const T &a, Point b) {
+    friend Point operator*(const Int &a, Point b) {
         return b *= a;
     }
     friend bool operator==(const Point &a, const Point &b) {
@@ -57,60 +57,60 @@ struct Point {
     }
 };
 
-template <class T>
+template <class Int>
 struct Line {
-    Point<T> a;
-    Point<T> b;
-    Line(const Point<T> &a_ = Point<T>(), const Point<T> &b_ = Point<T>()) : a(a_), b(b_) {}
+    Point<Int> a;
+    Point<Int> b;
+    Line(const Point<Int> &a_ = Point<Int>(), const Point<Int> &b_ = Point<Int>()) : a(a_), b(b_) {}
 };
 
-template <class T>
-T dot(const Point<T> &a, const Point<T> &b) {
+template <class Int>
+Int dot(const Point<Int> &a, const Point<Int> &b) {
     return a.x * b.x + a.y * b.y;
 }
 
-template <class T>
-T cross(const Point<T> &a, const Point<T> &b) {
+template <class Int>
+Int cross(const Point<Int> &a, const Point<Int> &b) {
     return a.x * b.y - a.y * b.x;
 }
 
-template <class T>
-T square(const Point<T> &p) {
+template <class Int>
+Int square(const Point<Int> &p) {
     return dot(p, p);
 }
 
-template <class T>
-double length(const Point<T> &p) {
+template <class Int>
+double length(const Point<Int> &p) {
     return sqrt(square(p));
 }
 
-template <class T>
-double length(const Line<T> &l) {
+template <class Int>
+double length(const Line<Int> &l) {
     return length(l.a - l.b);
 }
 
-template <class T>
-Point<T> normalize(const Point<T> &p) {
+template <class Int>
+Point<Int> normalize(const Point<Int> &p) {
     return p / length(p);
 }
 
-template <class T>
-bool parallel(const Line<T> &l1, const Line<T> &l2) {
+template <class Int>
+bool parallel(const Line<Int> &l1, const Line<Int> &l2) {
     return cross(l1.b - l1.a, l2.b - l2.a) == 0;
 }
 
-template <class T>
-double distance(const Point<T> &a, const Point<T> &b) {
+template <class Int>
+double distance(const Point<Int> &a, const Point<Int> &b) {
     return length(a - b);
 }
 
-template <class T>
-double distancePL(const Point<T> &p, const Line<T> &l) {
+template <class Int>
+double distancePL(const Point<Int> &p, const Line<Int> &l) {
     return abs(cross(l.a - l.b, l.a - p)) / length(l);
 }
 
-template <class T>
-double distancePS(const Point<T> &p, const Line<T> &l) {
+template <class Int>
+double distancePS(const Point<Int> &p, const Line<Int> &l) {
     if (dot(p - l.a, l.b - l.a) < 0) {
         return distance(p, l.a);
     }
@@ -120,33 +120,33 @@ double distancePS(const Point<T> &p, const Line<T> &l) {
     return distancePL(p, l);
 }
 
-template <class T>
-Point<T> rotate(const Point<T> &a) {
+template <class Int>
+Point<Int> rotate(const Point<Int> &a) {
     return Point(-a.y, a.x);
 }
 
-template <class T>
-int sgn(const Point<T> &a) {
+template <class Int>
+int sgn(const Point<Int> &a) {
     return a.y > 0 || (a.y == 0 && a.x > 0) ? 1 : -1;
 }
 
-template <class T>
-bool pointOnLineLeft(const Point<T> &p, const Line<T> &l) {
+template <class Int>
+bool pointOnLineLeft(const Point<Int> &p, const Line<Int> &l) {
     return cross(l.b - l.a, p - l.a) > 0;
 }
 
-template <class T>
-Point<T> lineIntersection(const Line<T> &l1, const Line<T> &l2) {
+template <class Int>
+Point<Int> lineIntersection(const Line<Int> &l1, const Line<Int> &l2) {
     return l1.a + (l1.b - l1.a) * (cross(l2.b - l2.a, l1.a - l2.a) / cross(l2.b - l2.a, l1.a - l1.b));
 }
 
-template <class T>
-bool pointOnSegment(const Point<T> &p, const Line<T> &l) {
+template <class Int>
+bool pointOnSegment(const Point<Int> &p, const Line<Int> &l) {
     return cross(p - l.a, l.b - l.a) == 0 && min(l.a.x, l.b.x) <= p.x && p.x <= max(l.a.x, l.b.x) && min(l.a.y, l.b.y) <= p.y && p.y <= max(l.a.y, l.b.y);
 }
 
-template <class T>
-bool pointInPolygon(const Point<T> &a, const vector<Point<T>> &p) {
+template <class Int>
+bool pointInPolygon(const Point<Int> &a, const vector<Point<Int>> &p) {
     int n = p.size();
     for (int i = 0; i < n; i++) {
         if (pointOnSegment(a, Line(p[i], p[(i + 1) % n]))) {
@@ -169,23 +169,23 @@ bool pointInPolygon(const Point<T> &a, const vector<Point<T>> &p) {
     return t == 1;
 }
 
-template <class T>
-tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line<T> &l2) {
+template <class Int>
+tuple<int, Point<Int>, Point<Int>> segmentIntersection(const Line<Int> &l1, const Line<Int> &l2) {
     if (max(l1.a.x, l1.b.x) < min(l2.a.x, l2.b.x)) {
-        return {0, Point<T>(), Point<T>()};
+        return {0, Point<Int>(), Point<Int>()};
     }
     if (min(l1.a.x, l1.b.x) > max(l2.a.x, l2.b.x)) {
-        return {0, Point<T>(), Point<T>()};
+        return {0, Point<Int>(), Point<Int>()};
     }
     if (max(l1.a.y, l1.b.y) < min(l2.a.y, l2.b.y)) {
-        return {0, Point<T>(), Point<T>()};
+        return {0, Point<Int>(), Point<Int>()};
     }
     if (min(l1.a.y, l1.b.y) > max(l2.a.y, l2.b.y)) {
-        return {0, Point<T>(), Point<T>()};
+        return {0, Point<Int>(), Point<Int>()};
     }
     if (cross(l1.b - l1.a, l2.b - l2.a) == 0) {
         if (cross(l1.b - l1.a, l2.a - l1.a) != 0) {
-            return {0, Point<T>(), Point<T>()};
+            return {0, Point<Int>(), Point<Int>()};
         } else {
             auto maxx1 = max(l1.a.x, l1.b.x);
             auto minx1 = min(l1.a.x, l1.b.x);
@@ -195,8 +195,8 @@ tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line
             auto minx2 = min(l2.a.x, l2.b.x);
             auto maxy2 = max(l2.a.y, l2.b.y);
             auto miny2 = min(l2.a.y, l2.b.y);
-            Point<T> p1(max(minx1, minx2), max(miny1, miny2));
-            Point<T> p2(min(maxx1, maxx2), min(maxy1, maxy2));
+            Point<Int> p1(max(minx1, minx2), max(miny1, miny2));
+            Point<Int> p2(min(maxx1, maxx2), min(maxy1, maxy2));
             if (!pointOnSegment(p1, l1)) {
                 swap(p1.y, p2.y);
             }
@@ -213,7 +213,7 @@ tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line
     auto cp4 = cross(l1.a - l2.b, l1.b - l2.b);
 
     if ((cp1 > 0 && cp2 > 0) || (cp1 < 0 && cp2 < 0) || (cp3 > 0 && cp4 > 0) || (cp3 < 0 && cp4 < 0)) {
-        return {0, Point<T>(), Point<T>()};
+        return {0, Point<Int>(), Point<Int>()};
     }
 
     Point p = lineIntersection(l1, l2);
@@ -224,16 +224,16 @@ tuple<int, Point<T>, Point<T>> segmentIntersection(const Line<T> &l1, const Line
     }
 }
 
-template <class T>
-double distanceSS(const Line<T> &l1, const Line<T> &l2) {
+template <class Int>
+double distanceSS(const Line<Int> &l1, const Line<Int> &l2) {
     if (get<0>(segmentIntersection(l1, l2)) != 0) {
         return 0.0;
     }
     return min({distancePS(l1.a, l2), distancePS(l1.b, l2), distancePS(l2.a, l1), distancePS(l2.b, l1)});
 }
 
-template <class T>
-bool segmentInPolygon(const Line<T> &l, const vector<Point<T>> &p) {
+template <class Int>
+bool segmentInPolygon(const Line<Int> &l, const vector<Point<Int>> &p) {
     int n = p.size();
     if (!pointInPolygon(l.a, p)) {
         return false;
@@ -302,8 +302,8 @@ bool segmentInPolygon(const Line<T> &l, const vector<Point<T>> &p) {
     return true;
 }
 
-template <class T>
-vector<Point<T>> hp(vector<Line<T>> lines) {
+template <class Int>
+vector<Point<Int>> hp(vector<Line<Int>> lines) {
     sort(lines.begin(), lines.end(), [&](auto l1, auto l2) {
         auto d1 = l1.b - l1.a;
         auto d2 = l2.b - l2.a;
@@ -315,8 +315,8 @@ vector<Point<T>> hp(vector<Line<T>> lines) {
         return cross(d1, d2) > 0;
     });
 
-    deque<Line<T>> ls;
-    deque<Point<T>> ps;
+    deque<Line<Int>> ls;
+    deque<Point<Int>> ps;
     for (auto l : lines) {
         if (ls.empty()) {
             ls.push_back(l);

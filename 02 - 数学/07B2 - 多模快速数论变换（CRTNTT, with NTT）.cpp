@@ -1,4 +1,4 @@
-struct CRT_NTT {
+struct CRTNTT {
     using ll = long long;
     static constexpr int mod1 = 998244353;
     static constexpr int mod2 = 1004535809;
