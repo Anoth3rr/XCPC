@@ -46,15 +46,16 @@
   - 05 - Bitset
   - 06 - 小波矩阵（WaveletMatrix）
 
-- 04 - 图论
+- 04 - 图、树、网络流
+  - 01A - 最近公共祖先（Tree, 树链剖分）
+  - 01B - 最近公共祖先（Tree, 倍增）
+  - 02 - 最小费用最大流（MinCostFlow, with Int）
+  - 03 - 最短路（Dijkstra）（无负权）
 
-- 05 - 网络流
-  - 01 - 最小费用最大流（MinCostFlow, with Int）
-
-- 06 - 字符串
+- 05 - 字符串
   - 01 - KMP
 
-- 07 - 高精度
+- 06 - 高精度
   - 01 - 整数（BigInt）
   - 01A - 整数（BigInt）（小型）
   - 02 - 定点数（FixedPoint）
