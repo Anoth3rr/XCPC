@@ -7,13 +7,12 @@ vector<ll> sphi(maxn + 1);
 
 void init(int n) {
     phi[1] = 1, mu[1] = 1;
-    primes.push_back(1);
 
     for (int i = 2; i <= maxn; i++) {
         if (spf[i] == 0)
             spf[i] = i, phi[i] = i - 1, mu[i] = -1, primes.push_back(i);
 
-        for (int j = 1; primes[j] * i <= maxn; j++) {
+        for (int j = 0; primes[j] * i <= maxn; j++) {
             int m = primes[j] * i;
             spf[m] = primes[j];
 
@@ -49,5 +48,5 @@ Z sumMu(int n) {
         ans -= (r - l + 1) * sumMu(n / l);
         l = r + 1;
     }
-    return ans;
+    return fMu[n] = ans;
 }

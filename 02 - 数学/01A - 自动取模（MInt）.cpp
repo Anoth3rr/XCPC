@@ -1,3 +1,5 @@
+constexpr int MOD = 998244353;
+
 template <class T>
 constexpr T ksm(T a, ll b) {
     T res = 1;

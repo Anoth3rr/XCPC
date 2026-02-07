@@ -1,50 +1,68 @@
-struct IO {
-    char a[1 << 25], b[1 << 25], *s, *t;
-    IO() : s(a), t(b) {
-        a[fread(a, 1, sizeof a, stdin)] = 0;
+namespace FastIO {
+static const int BUFSIZE = 1 << 20;
+char IBUF[BUFSIZE];
+int p1 = 0, p2 = 0;
+inline char getc() {
+    if (p1 >= p2) {
+        p2 = fread(IBUF, 1, BUFSIZE, stdin);
+        p1 = 0;
+        if (p2 == 0)
+            return EOF;
     }
-    ~IO() {
-        fwrite(b, 1, t - b, stdout);
+    return IBUF[p1++];
+}
+template <typename T>
+void Cin(T &a) {
+    T ans = 0;
+    bool f = 0;
+    char c = getc();
+    for (; c < '0' || c > '9'; c = getc()) {
+        if (c == '-')
+            f = 1;
     }
-    IO &operator>>(ull &x);
-    IO &operator>>(ll &x);
-    IO &operator>>(int &x);
-    IO &operator>>(unsigned &x) {
-        x = 0;
-
-        while (*s < '0' || *s > '9')
-            ++s;
-
-        while (*s >= '0' && *s <= '9')
-            x = x * 10 + *s++ - '0';
-
-        return *this;
+    for (; c >= '0' && c <= '9'; c = getc()) {
+        ans = ans * 10 + c - '0';
     }
-    IO &operator<<(const char *tmp) {
-        return fwrite(tmp, 1, strlen(tmp), stdout), *this;
+    a = f ? -ans : ans;
+}
+template <typename T, typename... Args>
+void Cin(T &a, Args &...args) {
+    Cin(a), Cin(args...);
+}
+char OBUF[BUFSIZE];
+int p3 = 0;
+inline void flush() {
+    fwrite(OBUF, 1, p3, stdout);
+    p3 = 0;
+}
+inline void putc(char c) {
+    if (p3 >= BUFSIZE)
+        flush();
+    OBUF[p3++] = c;
+}
+template <typename T>
+void Cout(T x, char end = '\n') {
+    if (x == 0) {
+        putc('0');
+        putc(end);
+        return;
     }
-    IO &operator<<(char x) {
-        return *t++ = x, *this;
+
+    if (x < 0) {
+        putc('-');
+        x = -x;
     }
-    IO &operator<<(ull x);
-    IO &operator<<(ll x);
-    IO &operator<<(int x);
-    IO &operator<<(unsigned x) {
-        static char c[16], *i;
-        i = c;
 
-        if (x == 0) {
-            *t++ = '0';
-        } else {
-            while (x != 0) {
-                unsigned y = x / 10;
-                *i++ = x - y * 10 + '0', x = y;
-            }
-
-            while (i != c)
-                *t++ = *--i;
-        }
-
-        return *this;
+    char s[24];
+    int n = 0;
+    while (x) {
+        s[n++] = char('0' + x % 10);
+        x /= 10;
     }
-} io;
+    while (n--)
+        putc(s[n]);
+    putc(end);
+}
+} // namespace FastIO
+
+using namespace FastIO;
