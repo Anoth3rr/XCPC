@@ -18,8 +18,6 @@ using ull = unsigned long long;
 using i128 = __int128;
 using PII = pair<int, int>;
 using PLL = pair<ll, ll>;
-using TIII = tuple<int, int, int>;
-using TLLL = tuple<ll, ll, ll>;
 
 void init() {
 }

@@ -1,44 +1,53 @@
-template <typename Int = ll>
+template <class Int>
 struct Frac {
     Int x, y;
-
-    Frac() : Frac(0, 1) {}
-    Frac(Int x_, Int y_) : x(x_), y(y_) {
+    Frac() : x(0), y(1) {}
+    Frac(Int a, Int b) : x(a), y(b) {
+        assert(y != 0);
         Int g = gcd(x, y);
+        assert(g != 0);
         x /= g, y /= g;
-        if (y < 0)
-            x = -x, y = -y;
+        if (y < 0) x = -x, y = -y;
     }
-    constexpr double val() const {
-        return 1.0 * x / y;
-    }
-    friend constexpr auto &operator<<(ostream &o, const Frac &j) {
-        Int g = gcd(j.x, j.y);
-        if (j.y == p) {
-            return o << j.x / g;
+
+    constexpr double val() const { return 1.0 * x / y; }
+
+    friend ostream &operator<<(ostream &o, const Frac &b) {
+        Int g = gcd(b.x, b.y);
+        if (b.y == g) {
+            return o << b.x / g;
         } else {
-            return o << j.x / g << "/" << j.y / g;
+            return o << b.x / g << "/" << b.y / g;
         }
     }
-    constexpr Frac &operator/=(const Frac &i) {
-        return Frac(x * i.y, y * i.x);
+    Frac &operator+=(const Frac o) {
+        *this = Frac(x * o.y + y * o.x, y * o.y);
+        return *this;
     }
-    constexpr Frac &operator+=(const Frac &i) {
-        return Frac(x * i.y + y * i.x, y * i.y);
+    Frac &operator-=(const Frac o) {
+        *this = Frac(x * o.y - y * o.x, y * o.y);
+        return *this;
     }
-    constexpr Frac &operator-=(const Frac &i) {
-        return Frac(x * i.y - y * i.x, y * i.y);
+    Frac &operator*=(const Frac o) {
+        *this = Frac(x * o.x, y * o.y);
+        return *this;
     }
-    constexpr Frac &operator*=(const Frac &i) {
-        return Frac(x * i.x, y * i.y);
+    Frac &operator/=(const Frac o) {
+        assert(o.x != 0);
+        *this = Frac(x * o.y, y * o.x);
+        return *this;
     }
-    friend constexpr Frac operator+(const Frac i, const Frac j) { return i += j; }
-    friend constexpr Frac operator-(const Frac i, const Frac j) { return i -= j; }
-    friend constexpr Frac operator*(const Frac i, const Frac j) { return i *= j; }
-    friend constexpr Frac operator/(const Frac i, const Frac j) { return i /= j; }
-    friend constexpr Frac operator-(const Frac i) { return Frac(-i.x, i.y); }
-    friend constexpr bool operator<(const Frac i, const Frac j) { return i.x * j.y < i.y * j.x; }
-    friend constexpr bool operator>(const Frac i, const Frac j) { return i.x * j.y > i.y * j.x; }
-    friend constexpr bool operator==(const Frac i, const Frac j) { return i.x * j.y == i.y * j.x; }
-    friend constexpr bool operator!=(const Frac i, const Frac j) { return i.x * j.y != i.y * j.x; }
+
+    constexpr Frac operator-() const {
+        *this = Frac(-x, y);
+        return *this;
+    }
+    friend Frac operator+(Frac a, const Frac &b) { return a += b; }
+    friend Frac operator-(Frac a, const Frac &b) { return a -= b; }
+    friend Frac operator*(Frac a, const Frac &b) { return a *= b; }
+    friend Frac operator/(Frac a, const Frac &b) { return a /= b; }
+    friend bool operator<(const Frac &a, const Frac &b) { return a.x * b.y < a.y * b.x; }
+    friend bool operator>(const Frac &a, const Frac &b) { return a.x * b.y > a.y * b.x; }
+    friend bool operator==(const Frac &a, const Frac &b) { return a.x * b.y == a.y * b.x; }
+    friend bool operator!=(const Frac &a, const Frac &b) { return a.x * b.y != a.y * b.x; }
 };
