@@ -1,0 +1,21 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+
+NamespaceIndentation: All
+ColumnLimit: 1000
+IndentPPDirectives: BeforeHash
+SpaceAfterTemplateKeyword: true
+ReflowComments: true
+AlignTrailingComments: true
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+AlignAfterOpenBracket: Align
+BinPackArguments: true

@@ -1,103 +1,103 @@
-template <class Int>
-struct LB {
-    using ull = unsigned long long;
-    static constexpr int BASE = sizeof(Int) * 8 - 1;
-    vector<Int> d, p;
-    int cnt, flag;
-    vector<ull> mask;
-    vector<int> rep;
+/*
+用途：异或线性基，支持可表示性、最大异或、最小非空异或和第 k 小非空子集异或值。
 
-    LB() {
-        d.assign(BASE + 1, 0);
-        p.assign(BASE + 1, 0);
-        mask.assign(BASE + 1, 0);
-        cnt = flag = 0;
-    }
-    bool insert(Int val, int idx) {
-        ull cur = 0;
-        for (int i = BASE - 1; i >= 0; i--) {
-            if (val & (1ll << i)) {
-                if (!d[i]) {
-                    d[i] = val;
-                    mask[i] = cur | (1ull << rep.size());
-                    rep.push_back(idx);
-                    return true;
-                }
-                val ^= d[i];
-                cur ^= mask[i];
+T 必须是整数类型；内部按 T 的全部二进制位工作，不会遗漏最高位。
+- insert(x)：插入 x，返回是否线性无关。
+- ask(x)：是否能由已插入数异或得到 x。
+- askMax(seed = 0)：max(seed xor subsetXor)。
+- askMin()：最小非空子集异或值；若存在非空子集异或为 0 则返回 0。
+- askKth(k)：第 k 小“非空子集”异或结果（1-indexed，重复结果只计一次），不存在返回 -1。
+
+调用 askKth/askMin 前会自动化为最简基，复杂度 O(B^2)，B 为位数（最多 64）。
+*/
+
+using u64 = uint64_t;
+
+template <class T = u64>
+struct LB {
+    static_assert(is_integral_v<T>);
+    using U = make_unsigned_t<T>;
+    static constexpr int B = numeric_limits<U>::digits;
+
+    array<U, B> bas{};
+    vector<U> ord;
+    int cnt = 0;
+    bool dep = false;
+
+    bool insert(T val) {
+        U x = static_cast<U>(val);
+        for (int bit = B - 1; bit >= 0; --bit) {
+            if (!((x >> bit) & U(1))) continue;
+            if (!bas[bit]) {
+                bas[bit] = x;
+                ++cnt;
+                ord.clear();
+                return true;
             }
+            x ^= bas[bit];
         }
-        flag = 1;
+        dep = true;
         return false;
     }
-    pair<bool, ull> check(Int val) {
-        ull res = 0;
-        for (int i = BASE - 1; i >= 0; --i) {
-            if (val & (1ll << i)) {
-                if (!d[i])
-                    return {false, 0ull};
-                val ^= d[i];
-                res ^= mask[i];
-            }
+
+    bool ask(T val) const {
+        U x = static_cast<U>(val);
+        for (int bit = B - 1; bit >= 0; --bit) {
+            if (!((x >> bit) & U(1))) continue;
+            if (!bas[bit]) return false;
+            x ^= bas[bit];
         }
-        return {true, res};
+        return true;
     }
-    Int ask_max() {
-        Int res = 0;
-        for (int i = BASE - 1; i >= 0; i--) {
-            if ((res ^ d[i]) > res)
-                res ^= d[i];
+
+    T askMax(T sd = T{}) const {
+        U ans = static_cast<U>(sd);
+        for (int bit = B - 1; bit >= 0; --bit) {
+            if ((ans ^ bas[bit]) > ans) ans ^= bas[bit];
         }
-        return res;
+        return static_cast<T>(ans);
     }
-    Int ask_min() {
-        if (flag)
-            return 0;
-        for (int i = 0; i <= BASE - 1; i++) {
-            if (d[i])
-                return d[i];
-        }
-    }
+
     void rebuild() {
-        for (int i = BASE - 1; i >= 0; i--) {
-            for (int j = i - 1; j >= 0; j--) {
-                if (d[i] & (1ll << j))
-                    d[i] ^= d[j];
+        for (int hi = B - 1; hi >= 0; --hi) {
+            if (!bas[hi]) continue;
+            for (int low = hi - 1; low >= 0; --low) {
+                if ((bas[hi] >> low) & U(1)) bas[hi] ^= bas[low];
             }
         }
-        for (int i = 0; i <= BASE - 1; i++) {
-            if (d[i])
-                p[cnt++] = d[i];
+        ord.clear();
+        for (int bit = 0; bit < B; ++bit) {
+            if (bas[bit]) ord.push_back(bas[bit]);
         }
     }
-    Int kthquery(ull k) {
-        if (flag)
-            k--;
-        if (!k)
-            return 0;
-        Int res = 0;
-        if (k >= (1ll << cnt))
-            return -1;
-        for (int i = BASE - 1; i >= 0; i--) {
-            if (k & (1LL << i))
-                res ^= p[i];
-        }
-        return res;
+
+    T askMin() {
+        if (dep) return T{};
+        rebuild();
+        return ord.empty() ? T{} : static_cast<T>(ord.front());
     }
-    void Merge(const LB &b) {
-        for (int i = BASE - 1; i >= 0; i--) {
-            if (b.d[i]) {
-                insert(b.d[i]);
-            }
+
+    T askKth(u64 k) {
+        if (k == 0) return T(-1);
+        rebuild();
+        u64 msk;
+        if (dep) {
+            msk = k - 1;  // 非空子集也可得到 0。
+        } else {
+            msk = k;  // 0 对应空集，非空结果从 mask = 1 开始。
         }
+        if (cnt < 64 && msk >= (1ull << cnt)) return T(-1);
+        U ans = 0;
+        for (int i = 0; i < cnt; ++i) {
+            if ((msk >> i) & 1ull) ans ^= ord[i];
+        }
+        return static_cast<T>(ans);
     }
-    vector<int> choose(ull mask) {
-        vector<int> res;
-        for (int i = 0; i < rep.size(); ++i) {
-            if (mask & (1ull << i)) {
-                res.pb(rep[i]);
-            }
+
+    void merge(const LB &o) {
+        for (int bit = B - 1; bit >= 0; --bit) {
+            if (o.bas[bit]) insert(static_cast<T>(o.bas[bit]));
         }
-        return res;
+        dep = dep || o.dep;
     }
 };

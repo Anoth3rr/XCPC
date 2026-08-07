@@ -1,0 +1,10 @@
+{
+  "name": "linyue-xcpc-print",
+  "version": "1.0.0",
+  "private": true,
+  "description": "林月的 XCPC 算法模板 Markdown / PDF 打印链路",
+  "dependencies": {
+    "katex": "0.18.1",
+    "marked": "17.0.5"
+  }
+}

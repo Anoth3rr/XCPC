@@ -1,273 +1,280 @@
+/*
+用途：运行时长度 Bitset，支持位运算、移位和枚举置位。
+
+下标为 0..askSz()-1；askNxt/askPre 找不到时返回 askSz()。
+resize(n, true) 会将“新增的位”置 1，行为与 vector 的扩容语义一致。
+*/
+
+using u64 = uint64_t;
+
 class Bitset {
   public:
-    using ull = uint64_t;
-    static constexpr int WORD = 64;
+    static constexpr int W = 64;
 
   private:
-    vector<ull> data_;
-    int nbits_;
-    ull last_mask_;
+    vector<u64> a;
+    int nb = 0;
+    u64 msk = ~u64(0);
 
-    static constexpr int words_for(int bits) {
-        return (bits + WORD - 1) / WORD;
+    static int wds(int bit) {
+        if (bit < 0) throw invalid_argument("negative bitset size");
+        return (bit + W - 1) / W;
     }
 
-    void update_last_mask() {
-        int r = nbits_ % WORD;
-        if (r == 0)
-            last_mask_ = ~ull(0);
-        else
-            last_mask_ = (1ull << r) - 1;
-        if (!data_.empty())
-            data_.back() &= last_mask_;
+    void trim() {
+        int rem = nb % W;
+        msk = rem == 0 ? ~u64(0) : (u64(1) << rem) - 1;
+        if (!a.empty()) a.back() &= msk;
+    }
+
+    void check(int pos) const {
+        if (pos < 0 || pos >= nb) throw out_of_range("bit index out of range");
     }
 
   public:
-    Bitset() : nbits_(0), last_mask_(~ull(0)) {}
-    explicit Bitset(int n, bool val = false) : data_(words_for(n), val ? ~ull(0) : 0), nbits_(n) {
-        update_last_mask();
-        if (val && (nbits_ % WORD))
-            data_.back() &= last_mask_;
+    Bitset() = default;
+    explicit Bitset(int n, bool val = false) {
+        resize(n, val);
     }
 
-    int size() const noexcept { return nbits_; }
-    bool empty() const noexcept { return nbits_ == 0; }
-    void reset() noexcept { fill(data_.begin(), data_.end(), 0); }
+    int askSz() const noexcept {
+        return nb;
+    }
+
+    bool askEmp() const noexcept {
+        return nb == 0;
+    }
+
+    void reset() noexcept {
+        fill(all(a), 0);
+    }
+
     void set() noexcept {
-        fill(data_.begin(), data_.end(), ~ull(0));
-        if (!data_.empty())
-            data_.back() &= last_mask_;
+        fill(all(a), ~u64(0));
+        if (!a.empty()) a.back() &= msk;
     }
 
     void resize(int n, bool val = false) {
-        int old_words = data_.size();
-        nbits_ = n;
-        int new_words = words_for(n);
-        data_.resize(new_words, val ? ~ull(0) : 0);
-        update_last_mask();
-        if (val && new_words > 0 && (nbits_ % WORD))
-            data_.back() &= last_mask_;
+        int nw = wds(n);
+        int ob = nb;
+        if (n == ob) return;
+
+        if (n > ob) {
+            a.resize(nw, val ? ~u64(0) : 0);
+            if (val) {
+                int fw = ob / W;
+                int fb = ob % W;
+                if (fw < nw) {
+                    if (fb) a[fw] |= (~u64(0) << fb);
+                    else a[fw] = ~u64(0);
+                    for (int i = fw + 1; i < nw; ++i) a[i] = ~u64(0);
+                }
+            }
+        } else {
+            a.resize(nw);
+        }
+        nb = n;
+        trim();
     }
 
-    void set(int pos) {
-        if (pos >= nbits_)
-            throw out_of_range("bit index out of range");
-        data_[pos / WORD] |= (1ull << (pos % WORD));
+    void modify(int pos, bool v) {
+        check(pos);
+        u64 b = u64(1) << (pos % W);
+        if (v) a[pos / W] |= b;
+        else a[pos / W] &= ~b;
     }
-    void reset(int pos) {
-        if (pos >= nbits_)
-            throw out_of_range("bit index out of range");
-        data_[pos / WORD] &= ~(1ull << (pos % WORD));
-    }
+
     void flip(int pos) {
-        if (pos >= nbits_)
-            throw out_of_range("bit index out of range");
-        data_[pos / WORD] ^= (1ull << (pos % WORD));
-    }
-    bool test(int pos) const {
-        if (pos >= nbits_)
-            throw out_of_range("bit index out of range");
-        return (data_[pos / WORD] >> (pos % WORD)) & 1;
+        check(pos);
+        a[pos / W] ^= u64(1) << (pos % W);
     }
 
-    bool any() const noexcept {
-        for (auto x : data_)
-            if (x)
-                return true;
+    bool ask(int pos) const {
+        check(pos);
+        return (a[pos / W] >> (pos % W)) & 1;
+    }
+
+    bool askAny() const noexcept {
+        for (u64 wd : a) {
+            if (wd) return true;
+        }
         return false;
     }
-    bool none() const noexcept { return !any(); }
 
-    int count() const noexcept {
-        int s = 0;
-        for (auto x : data_)
-            s += (int)__builtin_popcountll(x);
-        return s;
+    bool askNone() const noexcept {
+        return !askAny();
+    }
+
+    bool askAll() const noexcept {
+        if (a.empty()) return true;
+        for (int i = 0; i + 1 < a.size(); ++i) {
+            if (a[i] != ~u64(0)) return false;
+        }
+        return a.back() == msk;
+    }
+
+    int askCnt() const noexcept {
+        int ans = 0;
+        for (u64 wd : a) ans += __builtin_popcountll(wd);
+        return ans;
     }
 
     Bitset &operator&=(const Bitset &o) {
-        assert(nbits_ == o.nbits_);
-        int m = data_.size();
-        for (int i = 0; i < m; ++i)
-            data_[i] &= o.data_[i];
+        assert(nb == o.nb);
+        for (int i = 0; i < a.size(); ++i) a[i] &= o.a[i];
         return *this;
     }
+
     Bitset &operator|=(const Bitset &o) {
-        assert(nbits_ == o.nbits_);
-        int m = data_.size();
-        for (int i = 0; i < m; ++i)
-            data_[i] |= o.data_[i];
+        assert(nb == o.nb);
+        for (int i = 0; i < a.size(); ++i) a[i] |= o.a[i];
+        if (!a.empty()) a.back() &= msk;
         return *this;
     }
+
     Bitset &operator^=(const Bitset &o) {
-        assert(nbits_ == o.nbits_);
-        int m = data_.size();
-        for (int i = 0; i < m; ++i)
-            data_[i] ^= o.data_[i];
-        if (!data_.empty())
-            data_.back() &= last_mask_;
+        assert(nb == o.nb);
+        for (int i = 0; i < a.size(); ++i) a[i] ^= o.a[i];
+        if (!a.empty()) a.back() &= msk;
         return *this;
     }
+
     Bitset operator~() const {
-        Bitset r(*this);
-        for (auto &x : r.data_)
-            x = ~x;
-        if (!r.data_.empty())
-            r.data_.back() &= r.last_mask_;
-        return r;
+        Bitset res(*this);
+        for (u64 &wd : res.a) wd = ~wd;
+        if (!res.a.empty()) res.a.back() &= res.msk;
+        return res;
     }
 
-    friend Bitset operator&(Bitset a, const Bitset &b) {
-        a &= b;
-        return a;
-    }
-    friend Bitset operator|(Bitset a, const Bitset &b) {
-        a |= b;
-        return a;
-    }
-    friend Bitset operator^(Bitset a, const Bitset &b) {
-        a ^= b;
-        return a;
+    friend Bitset operator&(Bitset lhs, const Bitset &rhs) {
+        return lhs &= rhs;
     }
 
-    Bitset &operator<<=(int shift) {
-        if (shift == 0 || nbits_ == 0)
-            return *this;
-        int word_shift = shift / WORD;
-        int bit_shift = shift % WORD;
-        int m = data_.size();
-        if (word_shift >= m) {
+    friend Bitset operator|(Bitset lhs, const Bitset &rhs) {
+        return lhs |= rhs;
+    }
+
+    friend Bitset operator^(Bitset lhs, const Bitset &rhs) {
+        return lhs ^= rhs;
+    }
+
+    Bitset &operator<<=(int sh) {
+        if (sh < 0) throw invalid_argument("negative bit shift");
+        if (sh == 0 || nb == 0) return *this;
+        int sw = sh / W;
+        int sb = sh % W;
+        int wds = a.size();
+        if (sw >= wds) {
             reset();
             return *this;
         }
-        if (bit_shift == 0) {
-            for (int i = m; i-- > word_shift;)
-                data_[i] = data_[i - word_shift];
+        if (sb == 0) {
+            for (int i = wds - 1; i >= sw; --i) a[i] = a[i - sw];
         } else {
-            for (int i = m; i-- > word_shift;) {
-                ull high = data_[i - word_shift] << bit_shift;
-                ull low = 0;
-                if (i - word_shift > 0)
-                    low = data_[i - word_shift - 1] >> (WORD - bit_shift);
-                data_[i] = high | low;
+            for (int i = wds - 1; i >= sw; --i) {
+                u64 hi = a[i - sw] << sb;
+                u64 low = i - sw > 0 ? a[i - sw - 1] >> (W - sb) : 0;
+                a[i] = hi | low;
             }
         }
-        for (int i = 0; i < word_shift; ++i)
-            data_[i] = 0;
-        if (!data_.empty())
-            data_.back() &= last_mask_;
+        for (int i = 0; i < sw; ++i) a[i] = 0;
+        a.back() &= msk;
         return *this;
     }
 
-    Bitset &operator>>=(int shift) {
-        if (shift == 0 || nbits_ == 0)
-            return *this;
-        int word_shift = shift / WORD;
-        int bit_shift = shift % WORD;
-        int m = data_.size();
-        if (word_shift >= m) {
+    Bitset &operator>>=(int sh) {
+        if (sh < 0) throw invalid_argument("negative bit shift");
+        if (sh == 0 || nb == 0) return *this;
+        int sw = sh / W;
+        int sb = sh % W;
+        int wds = a.size();
+        if (sw >= wds) {
             reset();
             return *this;
         }
-        if (bit_shift == 0) {
-            for (int i = 0; i + word_shift < m; ++i)
-                data_[i] = data_[i + word_shift];
+        if (sb == 0) {
+            for (int i = 0; i + sw < wds; ++i) a[i] = a[i + sw];
         } else {
-            for (int i = 0; i + word_shift < m; ++i) {
-                ull low = data_[i + word_shift] >> bit_shift;
-                ull high = 0;
-                if (i + word_shift + 1 < m)
-                    high = data_[i + word_shift + 1] << (WORD - bit_shift);
-                data_[i] = low | high;
+            for (int i = 0; i + sw < wds; ++i) {
+                u64 low = a[i + sw] >> sb;
+                u64 hi = i + sw + 1 < wds ? a[i + sw + 1] << (W - sb) : 0;
+                a[i] = low | hi;
             }
         }
-        for (int i = m - word_shift; i < m; ++i)
-            data_[i] = 0;
-        if (!data_.empty())
-            data_.back() &= last_mask_;
+        for (int i = wds - sw; i < wds; ++i) a[i] = 0;
+        a.back() &= msk;
         return *this;
     }
 
-    friend Bitset operator<<(Bitset a, int s) {
-        a <<= s;
-        return a;
-    }
-    friend Bitset operator>>(Bitset a, int s) {
-        a >>= s;
-        return a;
+    friend Bitset operator<<(Bitset lhs, int sh) {
+        return lhs <<= sh;
     }
 
-    int next_set(int pos) const noexcept {
-        if (pos >= nbits_)
-            return nbits_;
-        int idx = pos / WORD;
-        unsigned offset = pos % WORD;
-        ull w = data_[idx] & (~ull(0) << offset);
-        if (w)
-            return idx * WORD + __builtin_ctzll(w);
-        ++idx;
-        while (idx < data_.size()) {
-            if (data_[idx])
-                return idx * WORD + __builtin_ctzll(data_[idx]);
-            ++idx;
+    friend Bitset operator>>(Bitset lhs, int sh) {
+        return lhs >>= sh;
+    }
+
+    int askNxt(int pos) const noexcept {
+        if (pos < 0) pos = 0;
+        if (pos >= nb) return nb;
+        int id = pos / W;
+        u64 wd = a[id] & (~u64(0) << (pos % W));
+        if (wd) return id * W + __builtin_ctzll(wd);
+        for (++id; id < a.size(); ++id) {
+            if (a[id]) return id * W + __builtin_ctzll(a[id]);
         }
-        return nbits_;
+        return nb;
     }
 
-    int prev_set(int pos) const noexcept {
-        if (nbits_ == 0)
-            return nbits_;
-        if (pos >= nbits_)
-            pos = nbits_ - 1;
-        int idx = pos / WORD;
-        unsigned offset = pos % WORD;
-        ull w = data_[idx] & ((offset == 63) ? ~ull(0) : ((1ull << (offset + 1)) - 1));
-        if (w)
-            return idx * WORD + (63 - __builtin_clzll(w));
-        if (idx == 0)
-            return nbits_;
-        do {
-            --idx;
-            if (data_[idx])
-                return idx * WORD + (63 - __builtin_clzll(data_[idx]));
-        } while (idx > 0);
-        return nbits_;
+    int askPre(int pos) const noexcept {
+        if (pos < 0 || nb == 0) return nb;
+        if (pos >= nb) pos = nb - 1;
+        int id = pos / W;
+        int off = pos % W;
+        u64 msk = off == 63 ? ~u64(0) : (u64(1) << (off + 1)) - 1;
+        u64 wd = a[id] & msk;
+        if (wd) return id * W + 63 - __builtin_clzll(wd);
+        while (id > 0) {
+            --id;
+            if (a[id]) return id * W + 63 - __builtin_clzll(a[id]);
+        }
+        return nb;
     }
 
-    template <typename F>
-    void for_each_set(F f) const {
-        int base = 0;
-        for (int i = 0; i < data_.size(); ++i) {
-            ull w = data_[i];
-            while (w) {
-                unsigned t = __builtin_ctzll(w);
-                f(base + t);
-                w &= w - 1;
+    template <class F>
+    void each(F f) const {
+        for (int i = 0; i < a.size(); ++i) {
+            u64 wd = a[i];
+            while (wd) {
+                int bit = __builtin_ctzll(wd);
+                f(i * W + bit);
+                wd &= wd - 1;
             }
-            base += WORD;
         }
     }
 
-    string to_string() const {
-        string s;
-        s.reserve(nbits_);
-        for (int i = 0; i < nbits_; ++i)
-            s.push_back(test(nbits_ - 1 - i) ? '1' : '0');
-        return s;
+    string str() const {
+        string res;
+        res.reserve(nb);
+        for (int i = nb - 1; i >= 0; --i) res.push_back(ask(i) ? '1' : '0');
+        return res;
     }
 
-    const ull *data() const noexcept { return data_.empty() ? nullptr : data_.data(); }
-    ull *data() noexcept { return data_.empty() ? nullptr : data_.data(); }
+    const u64 *askData() const noexcept {
+        return a.empty() ? nullptr : a.data();
+    }
 
-    static Bitset from_string(const string &s) {
-        Bitset bs(s.size());
+    u64 *askData() noexcept {
+        return a.empty() ? nullptr : a.data();
+    }
+
+    static Bitset read(const string &s) {
+        Bitset res(s.size());
         for (int i = 0; i < s.size(); ++i) {
             char c = s[s.size() - 1 - i];
-            if (c == '1')
-                bs.set(i);
-            else if (c != '0')
-                throw invalid_argument("invalid char in bitstring");
+            if (c == '1') res.modify(i, true);
+            else if (c != '0') throw invalid_argument("invalid char in bitstring");
         }
-        return bs;
+        return res;
     }
 };

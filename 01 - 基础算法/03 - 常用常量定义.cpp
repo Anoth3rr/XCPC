@@ -1,16 +1,20 @@
 // 最大值
-constexpr int inf = (ll)1e9 + 7;
-constexpr ll INF = (ll)2e18 + 9;
-constexpr ll INF = (ll)4e18;
+using ld = long double;
+
+constexpr int inf = 1'000'000'007;
+constexpr int INF = 2'000'000'000'000'000'009LL;
+// 若需要更大的上界，替换上一行：
+// constexpr int INF = 4'000'000'000'000'000'000LL;
 // 模数
-constexpr ll MOD = 1e9 + 7;
-constexpr ll MOD = 998244353;
+constexpr int MOD = 1'000'000'007;
+// constexpr int MOD = 998'244'353;
 // 很小的正数常量
-constexpr ld eps = 1e-10;
+constexpr ld eps = 1e-10L;
 // horse-左上起逆时针
-int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1},
-    dy[8] = {2, 1, -1, -2, -2, -1, 1, 2};
+int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+int dy[8] = {2, 1, -1, -2, -2, -1, 1, 2};
 // 4-左起逆时针
-int dx[4] = {-1, 0, 1, 0}, dy[4] = {0, -1, 0, 1};
+int dx4[4] = {-1, 0, 1, 0}, dy4[4] = {0, -1, 0, 1};
 // 8-左上起逆时针
-int dx[8] = {-1, -1, -1, 0, 1, 1, 1, 0}, dy[8] = {1, 0, -1, -1, -1, 0, 1, 1};
+int dx8[8] = {-1, -1, -1, 0, 1, 1, 1, 0};
+int dy8[8] = {1, 0, -1, -1, -1, 0, 1, 1};

@@ -1,136 +1,151 @@
-template <class Int = ll>
+/*
+用途：区间加、区间和、单点赋值的懒标记线段树。
+
+约定：初始数组和所有区间均为 1-indexed 闭区间。
+接口：build(a)、update(l, r, Tag<T>{delta})、modify(pos, value)、ask(l, r).val。
+T 需要支持 +、*、-= 等常规数值运算，通常使用 int。
+*/
+template <class T>
 struct Tag {
-    Int v = 0;
-    void operator+=(const Tag<Int> &o) {
+    T v = T{};
+
+    Tag &operator+=(const Tag &o) {
         v += o.v;
+        return *this;
     }
-    bool check() {
-        return v != 0;
+
+    bool has() const {
+        return v != T{};
     }
 };
 
-template <class Int = ll>
+template <class T>
 struct Info {
-    Int val = 0;
-    int l, r;
-    Info operator+(const Info<Int> &o) const {
-        Info res;
-        res.l = l;
-        res.r = o.r;
-        res.val = val + o.val;
-        return res;
+    T val = T{};
+    int l = 1, r = 0;  // 空信息满足 l > r。
+
+    bool askEmp() const {
+        return l > r;
     }
-    void operator+=(const Tag<Int> &o) {
-        val += o.v * (r - l + 1);
+
+    bool hasSon() const {
+        return l < r;
     }
-    bool check() {
-        return l != r;
+
+    Info operator+(const Info &o) const {
+        if (askEmp()) return o;
+        if (o.askEmp()) return *this;
+        return {val + o.val, l, o.r};
+    }
+
+    void operator+=(const Tag<T> &tag) {
+        if (!askEmp()) val += tag.v * (r - l + 1);
     }
 };
 
-template <class Int = ll>
+template <class T>
 class SegTree {
   private:
-    vector<Info<Int>> info;
-    vector<Tag<Int>> tag;
     int n;
+    vector<Info<T>> tr;
+    vector<Tag<T>> tag;
 
-    int ls(int x) { return x << 1; }
-    int rs(int x) { return x << 1 | 1; }
-
-    void print(int x, int l, int r) {
-        cout << x << ":[" << l << "," << r << "],val:" << info[x].val << ",tag:" << tag[x].v << "\n";
-        if (l == r)
-            return;
-        int mid = l + r >> 1;
-        print(ls(x), l, mid);
-        print(rs(x), mid + 1, r);
+    static int ls(int x) {
+        return x << 1;
+    }
+    static int rs(int x) {
+        return x << 1 | 1;
     }
 
-    template <class Array>
-    void build(int x, int l, int r, Array &data) {
+    void apply(int x, const Tag<T> &v) {
+        tr[x] += v;
+        tag[x] += v;
+    }
+
+    void pull(int x) {
+        tr[x] = tr[ls(x)] + tr[rs(x)];
+    }
+
+    void push(int x) {
+        if (!tr[x].hasSon() || !tag[x].has()) return;
+        apply(ls(x), tag[x]);
+        apply(rs(x), tag[x]);
+        tag[x] = Tag<T>{};
+    }
+
+    template <class A>
+    void build(int x, int l, int r, const A &a) {
+        tr[x].l = l;
+        tr[x].r = r;
+        tag[x] = Tag<T>{};
         if (l == r) {
-            info[x].l = l;
-            info[x].r = r;
-            info[x].val = data[l];
+            tr[x].val = a[l];
             return;
         }
         int mid = (l + r) >> 1;
-        build(ls(x), l, mid, data);
-        build(rs(x), mid + 1, r, data);
-        info[x] = info[ls(x)] + info[rs(x)];
+        build(ls(x), l, mid, a);
+        build(rs(x), mid + 1, r, a);
+        pull(x);
     }
 
-    void push_down(int x) {
-        if (tag[x].check() && info[x].check()) {
-            info[ls(x)] += tag[x];
-            info[rs(x)] += tag[x];
-            tag[ls(x)] += tag[x];
-            tag[rs(x)] += tag[x];
-            tag[x] = {0};
-        }
-    }
-
-    void update(int x, int l, int r, int lq, int rq, Tag<Int> v) {
-        if (rq < l || lq > r)
-            return;
-        if (lq <= l && r <= rq) {
-            info[x] += v;
-            tag[x] += v;
+    void update(int x, int l, int r, int ql, int qr, const Tag<T> &v) {
+        if (qr < l || r < ql) return;
+        if (ql <= l && r <= qr) {
+            apply(x, v);
             return;
         }
-        push_down(x);
+        push(x);
         int mid = (l + r) >> 1;
-        update(ls(x), l, mid, lq, rq, v);
-        update(rs(x), mid + 1, r, lq, rq, v);
-        info[x] = info[ls(x)] + info[rs(x)];
+        update(ls(x), l, mid, ql, qr, v);
+        update(rs(x), mid + 1, r, ql, qr, v);
+        pull(x);
     }
 
-    void modify(int x, int l, int r, int pos, Int v) {
-        if (r < pos || l > pos)
-            return;
-        if (l == r && l == pos) {
-            info[x].val = v;
+    void modify(int x, int l, int r, int pos, const T &v) {
+        if (l == r) {
+            tr[x].val = v;
+            tag[x] = Tag<T>{};
             return;
         }
+        push(x);
         int mid = (l + r) >> 1;
-        modify(ls(x), l, mid, pos, v);
-        modify(rs(x), mid + 1, r, pos, v);
-        info[x] = info[ls(x)] + info[rs(x)];
+        if (pos <= mid) modify(ls(x), l, mid, pos, v);
+        else modify(rs(x), mid + 1, r, pos, v);
+        pull(x);
     }
 
-    Info<Int> ask(int x, int l, int r, int lq, int rq) {
-        if (rq < l || lq > r)
-            return {Info<Int>()};
-        if (lq <= l && r <= rq)
-            return info[x];
-        push_down(x);
+    Info<T> ask(int x, int l, int r, int ql, int qr) {
+        if (qr < l || r < ql) return {};
+        if (ql <= l && r <= qr) return tr[x];
+        push(x);
         int mid = (l + r) >> 1;
-        auto ans = ask(ls(x), l, mid, lq, rq) + ask(rs(x), mid + 1, r, lq, rq);
-        return ans;
+        return ask(ls(x), l, mid, ql, qr) + ask(rs(x), mid + 1, r, ql, qr);
     }
 
   public:
-    SegTree(int n_) : n(n_), info(4 * n_ + 1), tag(4 * n_ + 1) {}
-
-    void print() {
-        print(1, 1, n);
+    explicit SegTree(int n) : n(n), tr(4 * n + 5), tag(4 * n + 5) {
+        assert(n > 0);
     }
 
-    template <class Array>
-    void build(Array &data) {
-        build(1, 1, n, data);
+    template <class A>
+    void build(const A &a) {
+        build(1, 1, n, a);
     }
 
-    void update(int l, int r, Tag<Int> v) {
+    void update(int l, int r, const Tag<T> &v) {
+        if (l > r) return;
+        assert(1 <= l && r <= n);
         update(1, 1, n, l, r, v);
     }
 
-    void modify(int pos, Int v) {
+    void modify(int pos, const T &v) {
+        assert(1 <= pos && pos <= n);
         modify(1, 1, n, pos, v);
     }
 
-    Info<Int> ask(int l, int r) {
+    Info<T> ask(int l, int r) {
+        if (l > r) return {};
+        assert(1 <= l && r <= n);
         return ask(1, 1, n, l, r);
     }
 };

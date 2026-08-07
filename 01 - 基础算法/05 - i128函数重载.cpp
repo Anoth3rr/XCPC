@@ -1,40 +1,64 @@
-istream &operator>>(istream &is, __int128 &n) {
-    string s;
-    is >> s;
-    n = 0;
-    int sign = 1;
-    int i = 0;
-    if (s[0] == '-') {
-        sign = -1;
-        i = 1;
+using i128 = __int128_t;
+using u128 = __uint128_t;
+
+inline bool read128(const std::string &s, i128 &n) {
+    if (s.empty()) return false;
+
+    int pos = 0;
+    bool y = false;
+    if (s[pos] == '-' || s[pos] == '+') {
+        y = (s[pos] == '-');
+        ++pos;
     }
-    for (; i < (int)s.size(); i++) {
-        n = n * 10 + (s[i] - '0');
+    if (pos == s.size()) return false;
+
+    const u128 lim = y ? (u128{1} << 127) : ((u128{1} << 127) - 1);
+    u128 val = 0;
+    for (; pos < s.size(); ++pos) {
+        const char c = s[pos];
+        if (c < '0' || c > '9') return false;
+        const u128 dig = static_cast<u128>(c - '0');
+        if (val > (lim - dig) / 10) return false;
+        val = val * 10 + dig;
     }
-    n *= sign;
+
+    if (y) {
+        n = (val == lim) ? -static_cast<i128>(lim - 1) - 1 : -static_cast<i128>(val);
+    } else {
+        n = static_cast<i128>(val);
+    }
+    return true;
+}
+
+inline std::istream &operator>>(std::istream &is, i128 &n) {
+    std::string s;
+    if (!(is >> s)) return is;
+    if (!read128(s, n)) is.setstate(std::ios::failbit);
     return is;
 }
 
-ostream &operator<<(ostream &os, __int128 n) {
-    if (n == 0)
-        return os << 0;
+inline std::ostream &operator<<(std::ostream &os, i128 n) {
+    if (n == 0) return os << '0';
+
+    u128 val;
     if (n < 0) {
         os << '-';
-        n = -n;
+        val = u128{0} - static_cast<u128>(n);
+    } else {
+        val = static_cast<u128>(n);
     }
-    string s;
-    while (n > 0) {
-        s += char('0' + n % 10);
-        n /= 10;
+
+    std::string s;
+    while (val > 0) {
+        s += static_cast<char>('0' + val % 10);
+        val /= 10;
     }
-    reverse(s.begin(), s.end());
+    std::reverse(s.begin(), s.end());
     return os << s;
 }
 
-i128 toi128(const string &s) {
+inline i128 toi128(const std::string &s) {
     i128 n = 0;
-    for (auto c : s) {
-        n = n * 10 + (c - '0');
-    }
+    assert(read128(s, n));
     return n;
 }
