@@ -29,7 +29,7 @@ struct Sieve {
                 mu[x] = -1;
             }
             for (int p : pri) {
-                if (p > n / x) break;  // 避免 p * x 溢出。
+                if (p > n / x) break;
                 int y = p * x;
                 lp[y] = p;
                 if (x % p == 0) {
