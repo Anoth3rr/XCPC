@@ -1,13 +1,4 @@
-/*
-用途：高性能整数 NTT 卷积。
-用法：auto c = NTT<998244353, 3>::mul(a, b)。
-约定：系数和下标缓存使用 int。
-自动取模版本使用 08B / 08C 的 Poly<Z, 3>。
-性能：默认使用宏展开后的 int；若大规模数据因此超时或超空间，可将纯下标、状态或计数局部改为 i32。
-*/
-
 template <int P, int G> struct NTT {
-
     static int pow(int a, int n) {
         int r = 1;
         while (n) {
@@ -18,7 +9,7 @@ template <int P, int G> struct NTT {
         return r;
     }
 
-    static void ntt(vector<int>& a, bool iv) {
+    static void ntt(vector<int> &a, bool iv) {
         int n = a.size();
         assert(n && !(n & (n - 1)));
         static vector<int> rv;
@@ -56,7 +47,7 @@ template <int P, int G> struct NTT {
         if (iv) {
             reverse(a.begin() + 1, a.end());
             int x = pow(n, P - 2);
-            for (int& v : a) v = v * x % P;
+            for (int &v : a) v = v * x % P;
         }
     }
 

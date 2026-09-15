@@ -1,29 +1,30 @@
-struct Tag {
-    int v{};
-    Tag(int x = 0) : v(x) {}
+template <class T> struct Tag {
+    T v{};
+
     Tag &operator+=(const Tag &o) {
         v += o.v;
         return *this;
     }
 };
 
-struct Info {
-    int val{}, len{};
+template <class T> struct Info {
+    T sum{};
+    int len{};
 
     Info() = default;
-    Info(int v, int len = 1) : val(v), len(len) {}
+    Info(T v, int len = 1) : sum(v), len(len) {}
 
     Info operator+(const Info &o) const {
-        return {val + o.val, len + o.len};
+        return {max(sum, o.sum), len + o.len};
     }
 
-    Info &operator+=(const Tag &tag) {
-        val += tag.v * len;
+    Info &operator+=(const Tag<T> &tag) {
+        sum += tag.v;
         return *this;
     }
 };
 
-struct SegTree {
+template <class Info, class Tag> struct SegTree {
     int n;
     vector<Info> tr;
     vector<Tag> tag;
@@ -90,6 +91,7 @@ struct SegTree {
 
     void update(int l, int r, const Tag &v) {
         if (l > r) return;
+        assert(1 <= l && r <= n);
         update(1, 1, n, l, r, v);
     }
 

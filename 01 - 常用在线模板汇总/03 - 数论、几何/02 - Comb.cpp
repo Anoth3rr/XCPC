@@ -1,6 +1,6 @@
 struct Comb {
     int n;
-    vector<Z> _fac_invfac, _inv;
+    vector<Z> _fac, _invfac, _inv;
 
     Comb() : n{0}, _fac{1}, _invfac{1}, _inv{0} {}
     Comb(int n) : Comb() {
@@ -37,11 +37,11 @@ struct Comb {
         return _inv[m];
     }
     Z P(int n, int m) {
-        if (n < m || m == 0) return 0;
+        if (n < 0 || m < 0 || m > n) return 0;
         return fac(n) * invfac(n - m);
     }
     Z C(int n, int m) {
-        if (n < m || m < 0) return 0;
+        if (n < 0 || m < 0 || m > n) return 0;
         return fac(n) * invfac(m) * invfac(n - m);
     }
 } C;

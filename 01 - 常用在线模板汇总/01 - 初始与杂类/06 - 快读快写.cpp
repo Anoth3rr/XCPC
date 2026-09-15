@@ -5,10 +5,10 @@ namespace FastIO {
         return p1 == p2 && (p2 = (p1 = ib) + fread(ib, 1, 1 << 21, stdin), p1 == p2) ? EOF : *p1++;
     }
 
-    template <typename T> bool Cin(T &a) {
+    template <typename T> void Cin(T &a) {
         T ans = 0;
         bool f = 0;
-        char c = getc();
+        int c = getc();
         for (; c < '0' || c > '9'; c = getc()) {
             if (c == '-') f = 1;
         }
