@@ -4,7 +4,7 @@ $2024 - {\rm,\ Created\ \pmb{and}\ maintained\ \pmb{by}\ \texttt{林月}.}$
 
 这里是林月的 $\textrm{XCPC}$ 在线模板库。
 
-感谢在本库组织时为我提供大量帮助的 [$\mathcal{Wida}$](https://github.com/hh2048) 和 [$\mathcal{CirnoNine}$](https://github.com/CirnoNine9) 。
+感谢在本库组织时为我提供大量帮助的 [Wida](https://github.com/hh2048) 和 [CirnoNine](https://github.com/CirnoNine9) 。
 
 主要分为以下几个板块：
 
