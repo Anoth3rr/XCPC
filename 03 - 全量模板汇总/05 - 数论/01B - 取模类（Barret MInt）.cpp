@@ -7,25 +7,53 @@ template <class T> T power(T a, int b) {
     return r;
 }
 
+struct Barrett {
+    using u128 = uint128_t;
+    using u64 = uint64_t;
+    int m;
+    u128 B;
+    Barrett(int m = 2) : m(m), B((u128(1) << 64) / m) {}
+    friend int operator%(int a, const Barrett &mod) {
+        u64 x = a < 0 ? -a : a;
+        u64 q = mod.B * x >> 64;
+        u64 r = x - q * mod.m;
+        if (r >= mod.m) r -= mod.m;
+        int ans = r;
+        return a < 0 ? -ans : ans;
+    }
+    friend int operator%=(int &a, const Barrett &mod) {
+        return a = a % mod;
+    }
+    friend int operator+(const int a, const Barrett &mod) {
+        return a + mod.m;
+    }
+    friend int operator-(const int a, const Barrett &mod) {
+        return a - mod.m;
+    }
+    friend int operator-(const Barrett &mod, const int a) {
+        return mod.m - a;
+    }
+    friend int operator/(const Barrett &mod, const int a) {
+        return mod.m / a;
+    }
+    friend int operator%(const Barrett &mod, const int a) {
+        return mod.m % a;
+    }
+};
+
 template <int P> struct MInt {
     int x;
-    constexpr MInt() : x{} {}
-    constexpr MInt(int x) : x{norm(x % getMod())} {}
+    inline static constexpr Barrett Mod{P};
 
-    static int Mod;
-    constexpr static int getMod() {
-        return P > 0 ? P : Mod;
-    }
-    constexpr static void setMod(int Mod_) {
-        Mod = Mod_;
-    }
+    constexpr MInt() : x{} {}
+    constexpr MInt(int x) : x{norm(x)} {}
 
     constexpr int norm(int x) const {
         if (x < 0) {
-            x += getMod();
+            x = x + Mod;
         }
-        if (x >= getMod()) {
-            x -= getMod();
+        if (x >= P) {
+            x = x - Mod;
         }
         return x;
     }
@@ -39,15 +67,15 @@ template <int P> struct MInt {
 
     constexpr MInt operator-() const {
         MInt res;
-        res.x = norm(getMod() - x);
+        res.x = norm(P - x);
         return res;
     }
     constexpr MInt inv() const {
         assert(x != 0);
-        return power(*this, getMod() - 2);
+        return power(*this, P - 2);
     }
     constexpr MInt &operator*=(MInt rhs) & {
-        x = 1LL * x * rhs.x % getMod();
+        x = 1LL * x * rhs.x % Mod;
         return *this;
     }
     constexpr MInt &operator+=(MInt rhs) & {

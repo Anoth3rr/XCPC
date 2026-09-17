@@ -34,4 +34,4 @@ struct DSU {
     int getcnt() const {
         return cc;
     }
-};
+}

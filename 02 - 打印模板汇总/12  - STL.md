@@ -1,386 +1,54 @@
-# STL
-
-## 01 - STL 与 GNU 扩展
-
-### 01A - PBDS前缀字典树（GNU环境）
-用 GNU PBDS Patricia trie 维护唯一字符串并枚举给定前缀。
-基本操作为 $\mathcal O(\log n)$ 期望，前缀枚举另加输出规模。
-仅 GCC/libstdc++；键唯一，`prefix_range(s)` 返回以 `s` 为前缀的半开范围。只需插入、查询或计数时使用数据结构目录的 `08A`。
-
-```cpp
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/trie_policy.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-using PTrie = __gnu_pbds::trie<
-    string, __gnu_pbds::null_type,
-    __gnu_pbds::trie_string_access_traits<>,
-    __gnu_pbds::pat_trie_tag,
-    __gnu_pbds::trie_prefix_search_node_update>;
-```
-
-### 01B - PBDS可并堆（GNU环境）
-用 GNU PBDS pairing heap 支持优先队列、任意节点修改/删除和破坏性合并。
-push/join 均摊 $\mathcal O(1)$，pop 均摊 $\mathcal O(\log n)$。
-仅 GCC/libstdc++；默认 `Cmp=less<T>` 为大根堆，`greater<T>` 为小根堆。`push` 返回句柄供 `modify/erase` 使用，`join` 后右堆清空，句柄操作复杂度依赖修改方向。
-
-```cpp
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/priority_queue.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-template <class T, class Cmp = less<T>> struct Heap {
-    using H = __gnu_pbds::priority_queue<T, Cmp, __gnu_pbds::pairing_heap_tag>;
-    using It = typename H::point_iterator;
-    H h;
-
-    It push(const T &x) { return h.push(x); }
-    void pop() { h.pop(); }
-    const T &ask() const { return h.top(); }
-    void modify(It p, const T &x) { h.modify(p, x); }
-    void erase(It p) { h.erase(p); }
-    void merge(Heap &o) { h.join(o.h); }
-    bool askEmp() const { return h.empty(); }
-    int askSz() const { return h.size(); }
-    void clear() { h.clear(); }
-};
-```
-
-### 01C - PBDS有序多重集（GNU环境）
-用 GNU PBDS 有序树维护多重集，并支持排名与第 $k$ 小。
-插入、删除、排名和第 $k$ 小均 $\mathcal O(\log n)$。
-仅 GCC/libstdc++；重复键用唯一编号区分，排名和 `kth` 为 $1$-indexed；与可移植的 `11A` 是同一问题的不同实现。
-
-```cpp
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-template <class Key> struct OSet {
-    using P = pair<Key, int>;
-    using Tree = __gnu_pbds::tree<P, __gnu_pbds::null_type, less<P>,
-                                  __gnu_pbds::rb_tree_tag,
-                                  __gnu_pbds::tree_order_statistics_node_update>;
-    Tree t;
-    int id = 0;
-
-    int insert(const Key& x) {
-        int k = ++id;
-        t.insert({x, k});
-        return k;
-    }
-
-    bool erase(const Key& x, int k) { return t.erase({x, k}); }
-
-    bool erase(const Key& x) {
-        auto it = t.lower_bound({x, 0});
-        if (it == t.end() || it->first != x) return false;
-        t.erase(it);
-        return true;
-    }
-
-    int askSz() const { return t.size(); }
-    bool askEmp() const { return t.empty(); }
-    void clear() { t.clear(), id = 0; }
-    int askCnt(const Key& x) const {
-        return t.order_of_key({x, numeric_limits<int>::max()}) - t.order_of_key({x, 0});
-    }
-    int askRank(const Key& x) const { return t.order_of_key({x, 0}) + 1; }
-
-    optional<Key> askKth(int k) const {
-        if (k < 1 || k > askSz()) return nullopt;
-        return t.find_by_order(k - 1)->first;
-    }
-
-    optional<Key> askPre(const Key& x) const {
-        auto it = t.lower_bound({x, 0});
-        if (it == t.begin()) return nullopt;
-        return (--it)->first;
-    }
-
-    optional<Key> askNxt(const Key& x) const {
-        auto it = t.upper_bound({x, numeric_limits<int>::max()});
-        return it == t.end() ? nullopt : optional<Key>(it->first);
-    }
-
-    optional<Key> askGE(const Key& x) const {
-        auto it = t.lower_bound({x, 0});
-        return it == t.end() ? nullopt : optional<Key>(it->first);
-    }
-};
-```
-
-### 01D - PBDS有序集合与映射（GNU环境）
-用 GNU PBDS 有序树维护唯一键集合/映射，并支持排名与第 $k$ 小。
-常规操作、排名、分裂和合并均为 $\mathcal O(\log n)$ 期望/摊销复杂度。
-仅 GCC/libstdc++；`OST` 的 `order_of_key`、`find_by_order` 为 $0$-indexed，`split` 后原树保留不大于 $x$ 的键，`join` 要求键域严格分离；重复键使用 `01C`。
-
-```cpp
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-template <class K, class Cmp = less<K>, class Tag = __gnu_pbds::rb_tree_tag>
-using OST = __gnu_pbds::tree<K, __gnu_pbds::null_type, Cmp, Tag,
-                            __gnu_pbds::tree_order_statistics_node_update>;
-
-template <class K, class V, class Cmp = less<K>, class Tag = __gnu_pbds::rb_tree_tag>
-using OMT = __gnu_pbds::tree<K, V, Cmp, Tag,
-                            __gnu_pbds::tree_order_statistics_node_update>;
-```
-
-### 01E - PBDS平衡树（GNU环境，基础）
-
-GNU PBDS 的基础有序平衡树，维护唯一键并支持排名、第 $k$ 小、前驱后继。
-各操作 $\mathcal O(\log n)$。
-仅 GCC/libstdc++；提供 `add/del/askRank/askKth/askPre/askNxt/askSz/askEmp`，排名和第 $k$ 小统一为 $1$-indexed；重复键使用 `01C`，可移植实现使用数据结构目录的 `11A`。
-
-```cpp
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-template <class T = int, class C = less<T>, class Tag = __gnu_pbds::rb_tree_tag>
-struct PBTree {
-    using Tree = __gnu_pbds::tree<T, __gnu_pbds::null_type, C, Tag,
-                                  __gnu_pbds::tree_order_statistics_node_update>;
-    Tree t;
-
-    bool add(const T& x) { return t.insert(x).second; }
-    bool del(const T& x) { return t.erase(x); }
-    bool ask(const T& x) const { return t.find(x) != t.end(); }
-    int askSz() const { return t.size(); }
-    bool askEmp() const { return t.empty(); }
-    void clear() { t.clear(); }
-
-    int askRank(const T& x) const { return t.order_of_key(x) + 1; }
-
-    optional<T> askKth(int k) const {
-        if (k < 1 || k > askSz()) return nullopt;
-        return *t.find_by_order(k - 1);
-    }
-
-    optional<T> askPre(const T& x) const {
-        auto it = t.lower_bound(x);
-        if (it == t.begin()) return nullopt;
-        return *--it;
-    }
-
-    optional<T> askNxt(const T& x) const {
-        auto it = t.upper_bound(x);
-        return it == t.end() ? nullopt : optional<T>(*it);
-    }
-};
-```
-
-### 01F - PBDS开放寻址哈希表（gp_hash_table，GNU环境）
-用 GNU PBDS gp_hash_table 维护大量唯一键的映射/集合，采用开放寻址以减小常数，GCC/libstdc++ 的 `gp_hash_table` 与随机盐哈希。
-平均插入、查找、删除 $\mathcal O(1)$，最坏不保证。
-仅 GCC/libstdc++；开放寻址常数小但增删可能使迭代器失效，`HMap<K,V>`/`HSet<K>` 提供常用映射和集合接口，哈希含运行时盐。
-
-```cpp
-
-using u64 = uint64_t;
-
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-struct Hash {
-    inline static const u64 r =
-        chrono::steady_clock::now().time_since_epoch().count();
-
-    static u64 mix(u64 x) {
-        x += 0x9e3779b97f4a7c15ULL;
-        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-        return x ^ (x >> 31);
-    }
-
-    template <class T> size_t operator()(const T &x) const {
-        return mix(u64(hash<T>{}(x)) + r);
-    }
-
-    template <class A, class B> size_t operator()(const pair<A, B> &x) const {
-        u64 a = (*this)(x.first), b = (*this)(x.second);
-        return mix(a ^ (b + 0x9e3779b97f4a7c15ULL + (a << 6) + (a >> 2)));
-    }
-};
-
-template <class K, class V, class H = Hash, class Eq = equal_to<K>>
-using HMap = __gnu_pbds::gp_hash_table<K, V, H, Eq>;
-
-template <class K, class H = Hash, class Eq = equal_to<K>>
-using HSet = __gnu_pbds::gp_hash_table<K, __gnu_pbds::null_type, H, Eq>;
-```
-
-### 01G - PBDS拉链哈希表（cc_hash_table，GNU环境）
-用 GNU PBDS cc_hash_table 维护哈希映射/集合，适合避免开放寻址聚簇或存放较大值，GCC/libstdc++ 的 `cc_hash_table` 与随机盐哈希。
-平均各操作 $\mathcal O(1)$，空间与节点数成正比。
-仅 GCC/libstdc++；拉链法节点开销较大但可降低开放寻址聚簇风险，接口同 `01F`；与 `01F` 是同一哈希字典问题的两种实现，通常只选一份。
-
-```cpp
-
-using u64 = uint64_t;
-
-#ifdef int
-#pragma push_macro("int")
-#undef int
-#define LYE_RESTORE_INT
-#endif
-#ifdef endl
-#pragma push_macro("endl")
-#undef endl
-#define LYE_RESTORE_ENDL
-#endif
-#include <ext/pb_ds/assoc_container.hpp>
-#ifdef LYE_RESTORE_ENDL
-#pragma pop_macro("endl")
-#undef LYE_RESTORE_ENDL
-#endif
-#ifdef LYE_RESTORE_INT
-#pragma pop_macro("int")
-#undef LYE_RESTORE_INT
-#endif
-
-struct Hash {
-    inline static const u64 r =
-        chrono::steady_clock::now().time_since_epoch().count();
-
-    static u64 mix(u64 x) {
-        x += 0x9e3779b97f4a7c15ULL;
-        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-        return x ^ (x >> 31);
-    }
-
-    template <class T> size_t operator()(const T &x) const {
-        return mix(u64(hash<T>{}(x)) + r);
-    }
-
-    template <class A, class B> size_t operator()(const pair<A, B> &x) const {
-        u64 a = (*this)(x.first), b = (*this)(x.second);
-        return mix(a ^ (b + 0x9e3779b97f4a7c15ULL + (a << 6) + (a >> 2)));
-    }
-};
-
-template <class K, class V, class H = Hash, class Eq = equal_to<K>>
-using HMap = __gnu_pbds::cc_hash_table<K, V, H, Eq>;
-
-template <class K, class H = Hash, class Eq = equal_to<K>>
-using HSet = __gnu_pbds::cc_hash_table<K, __gnu_pbds::null_type, H, Eq>;
-```
+## STL
 
 ### 库函数
 
 #### pb_ds 库
 
-其中 `gp_hash_table` 使用的最多，其等价于 `unordered_map` ，内部是无序的。
+##### `gp_hash_table`
+
+通常可以当成更快的 `unordered_map`
 
 ```c++
-#include <bits/extc++.h>
-#include <ext/pb_ds/assoc_container.hpp>
 template<class S, class T> using omap = __gnu_pbds::gp_hash_table<S, T, myhash>;
+omap<int, int> mp;       // map
+omap<int, null_type> st; // set
+```
+
+##### `ordered_set`
+
+平衡树，重复元素使用 $\texttt{pii}$​ 进行标记。
+
+`rb_tree_tag`：红黑树，首选
+
+`splay_tree_tag`：伸展树，适合访问高度集中的场景。
+
+`ov_tree_tag`：有序向量树，查询快但修改通常是 $\mathcal O(n)$ 。
+
+```cpp
+template <class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+ordered_set<int> st；
+
+s.insert(10);
+s.insert(30);
+s.insert(20);
+    
+s.order_of_key(20);      // 1：严格小于 20 的元素数量
+*s.find_by_order(1);     // 20：下标从 0 开始的第 1 个元素
+```
+
+##### `Heap`
+
+$\texttt{Dijkstra}$ 通常使用普通堆加懒删除更简单；只有明确需要 $\texttt{decrease-key}$ 或合并堆时，$\texttt{PBDS}$ 堆才更有优势。
+
+```cpp
+using Heap = __gnu_pbds::priority_queue<int, greater<int>, __gnu_pbds::pairing_heap_tag>;
+Heap heap;
+auto it = heap.push(10);
+heap.modify(it, 3); // 把这个节点修改为 3
+heap.erase(it);     // 删除指定节点
+Heap a, b;
+a.join(b); // 合并，b 被清空
 ```
 
 #### 查找后继 lower\_bound、upper\_bound
@@ -952,7 +620,7 @@ dfs(dfs, 1);
 
 #### 使用构造函数
 
-可以将一些必要的声明和预处理放在构造函数，在编译时，无论放置在程序的哪个位置，都会先于主函数进行。下方是我将输入流控制声明的过程。
+可以将一些必要的声明和预处理放在构造函数，在编译时，无论放置在程序的哪个位置，都会先于主函数进行。
 
 ```c++
 int __FAST_IO__ = []() { // 函数名称可以随意修改
@@ -964,11 +632,5 @@ int __FAST_IO__ = []() { // 函数名称可以随意修改
     return 0;
 }();
 ```
-
-## X - 结论
-
-### STL 与 GNU 扩展选择
-
-标准容器优先满足可移植性；需要排名或第 $k$ 小时使用 PBDS `01C/01D/01E`，需要节点句柄或可合并堆时使用 `01B`。哈希表在数据可能被构造攻击时选带随机盐的 `01F`，按内存局部性再考虑 `01G`；Patricia Trie `01A` 只在确实需要前缀枚举时使用。所有 PBDS 模板依赖 GCC/libstdc++，其余 STL 算法按标准复杂度工作。
 
 <div style="page-break-after:always">/END/</div>

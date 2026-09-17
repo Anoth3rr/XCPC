@@ -8,17 +8,17 @@ template <class T, class = decltype(begin(declval<T>())), class = enable_if_t<!i
     return os << ']';
 }
 
-template <class... A> void _(A&&... a) {
-    cerr << "---> ";
-    ((cerr << forward<A>(a) << ' '), ...);
-    cerr << "\n";
+template <class... A> void _(A &&...a) {
+    cout << "---> ";
+    ((cout << forward<A>(a) << ' '), ...);
+    cout << "\n";
 }
 
 inline auto tic() {
     return chrono::steady_clock::now();
 }
 
-template <class T> void toc(T t, const char* s = "") {
+template <class T> void toc(T t, const char *s = "") {
     double x = chrono::duration<double, milli>(chrono::steady_clock::now() - t).count();
-    cerr << "[time] " << s << (s[0] ? ": " : "") << fixed << setprecision(3) << x << " ms\n";
+    cout << "[time] " << s << (s[0] ? ": " : "") << fixed << setprecision(3) << x << " ms\n";
 }

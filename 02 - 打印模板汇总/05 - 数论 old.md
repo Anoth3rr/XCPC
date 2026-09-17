@@ -1,0 +1,4960 @@
+## 数论
+
+### 常见数列
+
+#### 调和级数
+
+满足调和级数 $\mathcal O\left( \dfrac{N}{1} +\dfrac{N}{2}+\dfrac{N}{3}+\dots + \dfrac{N}{N} \right)$，可以用 $ \approx N\ln N$ 来拟合，但是会略小，误差量级在 $10\%$ 左右。本地可以在500ms内完成 $10^8$ 量级的预处理计算。
+
+| N的量级 |  1   |  2   |   3   |   4    |     5     |     6      |      7      |       8       |       9        |
+| :-----: | :--: | :--: | :---: | :----: | :-------: | :--------: | :---------: | :-----------: | :------------: |
+| 累加和  |  27  | 482  | 7’069 | 93‘668 | 1’166‘750 | 13‘970’034 | 162‘725’364 | 1‘857’511‘568 | 20’877‘697’634 |
+
+下方示例为求解 $1$ 到 $N$ 中各个数字的因数值。
+
+```c++
+const int N = 1E5;
+vector<vector<int>> dic(N + 1);
+for (int i = 1; i <= N; i++) {
+    for (int j = i; j <= N; j += i) {
+        dic[j].push_back(i);
+    }
+}
+```
+
+#### 素数密度与分布
+
+| N的量级  |  1   |  2   |  3   |   4   |   5   |   6    |    7    |     8     |     9      |
+| :------: | :--: | :--: | :--: | :---: | :---: | :----: | :-----: | :-------: | :--------: |
+| 素数数量 |  4   |  25  | 168  | 1‘229 | 9’592 | 78‘498 | 664’579 | 5‘761’455 | 50‘847’534 |
+
+除此之外，对于任意两个相邻的素数 $p_1,p_2 \le 10^9$ ，有 $|p_1-p_2|<300$ 成立，更具体的说，最大的差值为 $282$ 。
+
+#### 因数最多数字与其因数数量
+
+|        N的量级         |  1   |  2   |  3   |     4      |      5       |                   6                    |  7   |
+| :--------------------: | :--: | :--: | :--: | :--------: | :----------: | :------------------------------------: | :--: |
+| 因数最多数字的因数数量 |  4   |  25  |  32  |     64     |     128      |                  240                   | 448  |
+|     因数最多的数字     |  -   |  -   |  -   | 7560, 9240 | 83160, 98280 | 720720, 831600, 942480, 982800, 997920 |  -   |
+
+### 快速幂
+
+#### 常规
+
+```cpp
+int mypow(int a, int b, int m) {
+    int r = 1 % m;
+    for (; b; b >>= 1, a = a * a % m)
+        if (b & 1) r = r * a % m;
+	return r;
+}
+```
+
+#### 防爆
+
+```cpp
+int mul(int a, int b, int m) {
+    a %= m, b %= m;
+    int r = a * b - m * (int)(1.0L / m * a * b);
+    return r - m * (r >= m) + m * (r < 0);
+}
+int mul(int a, int b, int m) {
+    return (__int128_t)a * b % m;
+}
+int mypow(int a, int b, int m) {
+    int r = 1 % m;
+    for (; b; b >>= 1, a = mul(a, a, m))
+        if (b & 1) r = mul(r, a, m);
+	return r;
+}
+```
+
+### 数论工具
+
+#### 素数
+
+##### 试除法
+
+时间复杂度 $\mathcal O(\sqrt n)$ ，==常数优化版本==可达 $\mathcal O(\frac {\sqrt n}{3})$​。
+
+```cpp
+bool isprime(int n) {
+    if (n < 2) return false;
+    for (int i = 2; i * i <= n; ++i)
+        if (n % i == 0) return false;
+    return true;
+}
+```
+
+##### 筛法
+
+```cpp
+constexpr int N = 2e5;
+
+vector<int> primes, spf(N + 1);
+
+void init() {
+    for (int i = 2; i <= N; ++i) {
+        if (!spf[i]) {
+            spf[i] = i, primes.push_back(i);
+        }
+        for (auto p : primes) {
+            if (i * p > N) break;
+            int y = p * i;
+            spf[y] = p;
+		}
+    }
+}
+```
+
+##### Miller-Rabin
+
+随机化验证，非严谨计算的平均复杂度约为 $\mathcal O (3.5 \times \log X)$ 。对于某些强力质数，可能会退化至约 $\mathcal O(35 \times \log X)$ 。有==常数优化版本==可以再快五倍。
+
+```cpp
+int mul(int a, int b, int m) {
+    int r = a * b - m * (int)(1.0L / m * a * b);
+    return r - m * (r >= m) + m * (r < 0);
+}
+
+int mypow(int a, int b, int m) {
+    int r = 1 % m;
+    for (; b; b >>= 1, a = mul(a, a, m))
+        if (b & 1) r = mul(res, a, m);
+    return r;
+}
+
+bool isprime(int n) {
+    if (n < 2 || n % 6 % 4 != 1) return (n | 1) == 3;
+    int s = __builtin_ctzll(n - 1), d = n >> s;
+    for (int a : {2, 325, 9375, 28178, 450775, 9780504, 1795265022}) {
+        i64 p = pow(a % n, d, n), i = s;
+        while (p != 1 && p != n - 1 && a % n && i--) {
+            p = mul(p, p, n);
+        }
+        if (p != n - 1 && i != s) return false;
+    }
+    return true;
+}
+```
+
+#### 质因子分解
+
+##### 试除法
+
+时间复杂度 $\mathcal O(n)$ ，注意不要忘记大质数的情况。
+
+```cpp
+vector<pii> fact(int x) {
+    vector<pii> r;
+    for (int p = 2; p * p <= x; ++p) {
+        if (x % p == 0) {
+            int c = 0;
+            while (x % p == 0) x /= p, ++c;
+            r.push_back({p, c});
+        }
+    }
+    if (x != 1) r.push_back({x, 1});
+    return r;
+}
+```
+
+##### 筛法
+
+需要预处理最小质因子 $\textrm{spf}$ 表，单次查询时间 $\mathcal O(\textrm{Prime Numer})$。
+
+```cpp
+vector<pii> fact(int x) {
+    vector<pii> res;
+    while (x > 1) {
+        int p = spf[x], e = 0;
+        do {
+            x /= p;
+            ++e;
+        } while (x % p == 0);
+        res.push_back({p, e});
+    }
+    return res;
+}
+```
+
+##### Pollard-Rho
+
+以单个因子 $\mathcal O (\log X)$ 的复杂度输出数字 $X$ 的全部质因数，由于需要结合素数测试，总复杂度会略高一些。如果遇到超时的情况，可能需要考虑进一步优化，例如检查题目是否强制要求枚举全部质因数等等。有==常数优化版本==可以再快五倍。
+
+```cpp
+int rho(int n) {
+    if (!(n & 1)) return 2;
+    int x = 0, y = 0, prod = 1;
+    auto f = [&](int x) -> int { return mul(x, x, n) + 5; };
+    for (int t = 30, z = 0; t % 64 || gcd(prod, n) == 1; ++t) {
+        if (x == y) x = ++z, y = f(x);
+        if (int q = mul(prod, x + n - y, n)) prod = q;
+        x = f(x), y = f(f(y));
+    }
+    return gcd(prod, n);
+}
+
+vector<int> fact(int x) {
+    vector<int> res;
+    auto f = [&](auto f, int x) {
+        if (x == 1) return;
+        if (isprime(x)) return res.push_back(x);
+        int y = rho(x);
+        f(f, y), f(f, x / y);
+    };
+    f(f, x), sort(res.begin(), res.end());
+    return res;
+}
+```
+
+#### 欧拉函数
+
+##### 单点求欧拉函数
+
+时间复杂度 $\mathcal O(\sqrt n)$。
+
+```cpp
+int phi(int n) {
+    assert(n >= 1);
+    int res = n;
+    for (int p = 2; p <= n / p; ++p) {
+        if (n % p != 0) continue;
+        while (n % p == 0) n /= p;
+        res = res / p * (p - 1);
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+```
+
+##### 筛法
+
+```cpp
+constexpr int N = 2e5;
+
+vector<int> primes, spf(N + 1), phi(N + 1);
+
+void init() {
+    for (int i = 2; i <= N; ++i) {
+        if (!spf[i]) {
+            spf[i] = i, primes.push_back(i), phi[i] = i - 1;
+        }
+        for (auto p : primes) {
+            if (i * p > N) break;
+            int y = p * i;
+            spf[y] = p;
+            if (p == spf[i]) {
+                phi[i * p] = phi[i] * p;
+                break;
+            }
+            phi[i * p] = phi[i] * (p - 1);
+		}
+    }
+}
+```
+
+#### 前缀和
+
+##### 杜教筛
+
+适合 $\varphi/\mu$ 这类能找到简单狄利克雷卷积关系的积性函数，常用于互质计数，莫比乌斯反演，整除分块等，时间复杂度 $\mathcal O(n^{\frac{2}{3}})$ 。
+
+一般取 $\textrm{lim} = n^{\frac{2}{3}}$ ，线性筛得到 $f(1...\textrm{lim})$ 的前缀和，较大的 $n$​​ 递推计算，用哈希表记忆化。
+
+需要找到一个简单函数 $g$ 满足 $h = f * g$ ，于是有 $F(n) = (H(n) - \sum\limits_{d=2}^{n} g(d) F(\lfloor\frac{n}{d}\rfloor))/g(1)$​ ，整除分块求解。
+
+对于欧拉函数 $\varphi$ ，取 $g = 1;\;h = \textrm{id};\; H(n) = n(n+1)/2$。
+
+对于莫比乌斯函数 $\mu$ ，取 $g = 1;\;h=\epsilon;\;H(n)=1$
+
+```cpp
+Z sumPhi(int n) {
+    if (n <= lim) return prePhi[n];
+    if (auto it = memo.find(n); it != memo.end()) return it -> second;
+    Z ans = Z(n) * (n + 1) / 2;
+    for (int l = 2, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        ans -= (r - l + 1) * sumPhi(n / l);
+    }
+    return memo[n] = ans;
+}
+```
+
+
+
+##### min_25筛
+
+适合处理一般的积性函数，例如约数个数、约数和、欧拉函数加权和等，尤其擅长处理质数处的函数值很好表达的情况，时间复杂度 $\mathcal O(n^{\frac{3}{4}} / \log n)$。
+
+### 模运算与同余方程
+
+#### 组合数
+
+##### debug
+
+提供一组测试数据：$\binom{132}{66}=$ 377'389'666'165'540'953'244'592'352'291'892'721'700，模数为 $998244353$ 时为 $241'200'029$；$10^9+7$ 时为 $598375978$​。
+
+##### 基础
+
+质数模数，$\mathcal O(n)$ 预处理， $\mathcal O(1)$ 查询。
+
+```cpp
+struct Comb {
+    int n;
+    vector<Z> _fac, _invfac, _inv;
+
+    Comb() : n{0}, _fac{1}, _invfac{1}, _inv{0} {}
+    Comb(int n) : Comb() {
+        init(n);
+    }
+
+    void init(int m) {
+        if (m <= n) return;
+        _fac.resize(m + 1);
+        _invfac.resize(m + 1);
+        _inv.resize(m + 1);
+
+        for (int i = n + 1; i <= m; i++) {
+            _fac[i] = _fac[i - 1] * i;
+        }
+        _invfac[m] = _fac[m].inv();
+        for (int i = m; i > n; i--) {
+            _invfac[i - 1] = _invfac[i] * i;
+            _inv[i] = _invfac[i] * _fac[i - 1];
+        }
+        n = m;
+    }
+
+    Z fac(int m) {
+        if (m > n) init(2 * m);
+        return _fac[m];
+    }
+    Z invfac(int m) {
+        if (m > n) init(2 * m);
+        return _invfac[m];
+    }
+    Z inv(int m) {
+        if (m > n) init(2 * m);
+        return _inv[m];
+    }
+    Z P(int n, int m) {
+        if (n < 0 || m < 0 || m > n) return 0;
+        return fac(n) * invfac(n - m);
+    }
+    Z C(int n, int m) {
+        if (n < 0 || m < 0 || m > n) return 0;
+        return fac(n) * invfac(m) * invfac(n - m);
+    }
+} C;
+```
+
+##### Lucas定理
+
+处理 $n$ 极大的情况。 
+
+```cpp
+auto C = [&](int n, int k) -> C {
+    if (k < 0 || k > n) return Z(0);
+    Z r = 1;
+    while (n || k) {
+        int x = n % p, y = k % p;
+        if (y > x) return Z(0);
+        r *= C.C(x, y);
+        n /= p;
+        k /= p;
+    }
+    return r;
+}
+```
+
+##### exLucas
+
+处理模数为合数的情况。
+
+```cpp
+struct Comb {
+    struct Node {
+        int p, pk, e;
+        vector<int> f;
+    };
+    int P;
+    vector<Node> a;
+    Comb(int p) : P(p) {
+        int x = P;
+        for (int p = 2; p * p <= x; ++p) {
+            if (x % p) continue;
+
+            int pk = 1, e = 0;
+            while (x % p == 0) {
+                x /= p;
+                pk *= p;
+                ++e;
+            }
+            add(p, pk, e);
+        }
+        if (x > 1) add(x, x, 1);
+    }
+    static int mul(int a, int b, int m) {
+        a %= m, b %= m;
+        int r = a * b - m * (int)(1.0L / m * a * b);
+        return r - m * (r >= m) + m * (r < 0);
+    }
+    static int mypow(int a, int b, int m) {
+        int r = 1 % m;
+        for (; b; b >>= 1, a = mul(a, a, m))
+            if (b & 1) r = mul(r, a, m);
+        return r;
+    }
+    static int inv(int a, int m) {
+        int b = m, x = 1, y = 0;
+        while (b) {
+            int q = a / b, r = a % b;
+            a = b, b = r;
+            int z = x - q * y;
+            x = y, y = z;
+        }
+        return (x % m + m) % m;
+    }
+    void add(int p, int pk, int e) {
+        Node x{p, pk, e, vector<int>(pk + 1)};
+        x.f[0] = 1;
+        for (int i = 1; i <= pk; ++i) {
+            x.f[i] = mul(x.f[i - 1], i % p ? i : 1, pk);
+        }
+        a.push_back(move(x));
+    }
+    static int vp(int n, int p) {
+        int res = 0;
+        while (n) n /= p, res += n;
+        return res;
+    }
+
+    int fact(int n, const Node &x) const {
+        if (!n) return 1;
+        return mul(mul(mypow(x.f[x.pk], n / x.pk, x.pk), x.f[n % x.pk], x.pk), fact(n / x.p, x), x.pk);
+    }
+
+    int Cpk(int n, int m, const Node &x) const {
+        int e = vp(n, x.p) - vp(m, x.p) - vp(n - m, x.p);
+        if (e >= x.e) return 0;
+
+        int res = fact(n, x);
+        res = mul(res, inv(fact(m, x), x.pk), x.pk);
+        res = mul(res, inv(fact(n - m, x), x.pk), x.pk);
+        return mul(res, mypow(x.p, e, x.pk), x.pk);
+    }
+
+    int C(int n, int m) const {
+        if (P == 1 || m < 0 || m > n) return 0;
+        m = min(m, n - m);
+
+        int ans = 0;
+        for (const auto &x : a) {
+            int M = P / x.pk;
+            ans = (ans + mul(mul(Cpk(n, m, x), M, P), inv(M % x.pk, x.pk), P)) % P;
+        }
+        return ans;
+    }
+};
+```
+
+##### 杨辉三角形
+
+$60$ 以内 `long long` 可解，$130$ 以内 `__int128` 可解。
+
+```cpp
+vector C(n + 1, vector<int>(n + 1));
+C[0][0] = 1;
+for (int i = 1; i <= n; i++) {
+    C[i][0] = 1;
+    for (int j = 1; j <= n; j++) {
+        C[i][j] = C[i - 1][j] + C[i - 1][j - 1];
+    }
+}
+cout << C[n][m] << endl;
+```
+
+### 01E - 莫比乌斯与狄利克雷运算
+
+统一收录莫比乌斯前缀和、反演、加权和及狄利克雷卷积，`01A` 线性筛、整除分块或可逆系数。
+由子模板决定，常见为 $\mathcal O(N\log N)$ 或记忆化分块复杂度。
+
+### 01EA - 莫比乌斯函数（Mertens、杜教筛）
+求莫比乌斯函数前缀和并支持大范围查询，采用整除分块和记忆化。
+依赖线性筛。
+预处理后按记忆化状态数计，常用约 $\mathcal O(n^{2/3})$。
+
+$M(n)=\sum_{i\le n}\mu(i)$；预处理范围 `lim` 内可 $\mathcal O(1)$ 查询，超出后按整除分块递归并记忆化，`lim` 可按内存取约 $n^{2/3}$。
+
+```cpp
+struct Mertens {
+    Sieve sv;
+    vector<int> pre;
+    unordered_map<int, int> mp;
+
+    Mertens() = default;
+    explicit Mertens(int lim) { init(lim); }
+
+    void init(int lim) {
+        assert(lim >= 1);
+        sv.init(lim);
+        pre.assign(lim + 1, 0);
+        for (int i = 1; i <= lim; ++i) pre[i] = pre[i - 1] + sv.mu[i];
+        mp.clear();
+    }
+
+    int ask(int n) {
+        assert(n >= 0 && sv.n > 0);
+        if (n <= sv.n) return pre[n];
+        if (auto it = mp.find(n); it != mp.end()) return it->second;
+        int ans = 1;
+        for (int l = 2, r; l <= n; l = r + 1) {
+            int q = n / l;
+            r = n / q;
+            ans -= (r - l + 1) * ask(q);
+        }
+        return mp[n] = ans;
+    }
+};
+```
+
+### 01EB - 莫比乌斯反演（约数和变换）
+在约数和与倍数和之间做莫比乌斯反演，需提供莫比乌斯函数表。
+$\mathcal O(N\log N)$ 时间、$\mathcal O(N)$ 空间。
+
+按约数和或倍数和方向执行莫比乌斯反演；数组下标从 $1$ 开始，接口直接返回变换后的整表。
+
+```cpp
+template <class T> vector<T> zetaDiv(const vector<T>& f) {
+    int n = f.size() - 1;
+    assert(n >= 0);
+    vector<T> res(n + 1, T(0));
+    for (int d = 1; d <= n; ++d)
+        for (int x = d; x <= n; x += d) res[x] += f[d];
+    return res;
+}
+
+template <class T> vector<T> mobDiv(const vector<T>& F, const vector<int>& mu) {
+    int n = F.size() - 1;
+    assert(mu.size() > n);
+    vector<T> res(n + 1, T(0));
+    for (int d = 1; d <= n; ++d) {
+        if (mu[d] == 0) continue;
+        for (int x = d; x <= n; x += d) res[x] += T(mu[d]) * F[x / d];
+    }
+    return res;
+}
+
+template <class T> vector<T> zetaMul(const vector<T>& f) {
+    int n = f.size() - 1;
+    assert(n >= 0);
+    vector<T> res(n + 1, T(0));
+    for (int d = 1; d <= n; ++d)
+        for (int x = d; x <= n; x += d) res[d] += f[x];
+    return res;
+}
+
+template <class T> vector<T> mobMul(const vector<T>& G, const vector<int>& mu) {
+    int n = G.size() - 1;
+    assert(mu.size() > n);
+    vector<T> res(n + 1, T(0));
+    for (int k = 1; k <= n; ++k) {
+        if (mu[k] == 0) continue;
+        for (int d = 1; d * k <= n; ++d) res[d] += T(mu[k]) * G[d * k];
+    }
+    return res;
+}
+```
+
+### 01EC - 加权莫比乌斯函数（d²）
+求带 $d^2$ 权的莫比乌斯前缀和，适用于质数模。
+预处理与杜教筛同阶，单次记忆化查询均摊 $\mathcal O(1)$。
+在质数模下计算 $S(n)=\sum_{d\le n}\mu(d)d^2$，用于带平方权的整除分块。
+
+```cpp
+template <class Z> struct Mobius2 {
+    int n = 0;
+    vector<int> lp, pri, mu;
+    vector<Z> pre;
+    unordered_map<int, Z> mp;
+
+    Mobius2() = default;
+    explicit Mobius2(int lim) { init(lim); }
+
+    void init(int lim) {
+        assert(lim >= 1);
+        n = lim;
+        lp.assign(n + 1, 0);
+        mu.assign(n + 1, 0);
+        pri.clear();
+        pre.assign(n + 1, Z(0));
+        lp[1] = 1;
+        mu[1] = 1;
+        for (int x = 2; x <= n; ++x) {
+            if (lp[x] == 0) lp[x] = x, mu[x] = -1, pri.push_back(x);
+            for (int p : pri) {
+                if (p > n / x) break;
+                int y = p * x;
+                lp[y] = p;
+                if (x % p == 0) {
+                    mu[y] = 0;
+                    break;
+                }
+                mu[y] = -mu[x];
+            }
+        }
+        for (int i = 1; i <= n; ++i) pre[i] = pre[i - 1] + Z(mu[i]) * Z(i) * i;
+        mp.clear();
+    }
+
+    static Z sum2(int n) {
+        Z x = Z(n);
+        return x * (x + 1) * (x * 2 + 1) / Z(6);
+    }
+
+    Z ask(int x) {
+        assert(x >= 0 && n > 0);
+        if (x <= n) return pre[x];
+        if (auto it = mp.find(x); it != mp.end()) return it->second;
+        Z ans = 1;
+        for (int l = 2, r; l <= x; l = r + 1) {
+            int q = x / l;
+            r = x / q;
+            ans -= (sum2(r) - sum2(l - 1)) * ask(q);
+        }
+        return mp[x] = ans;
+    }
+};
+```
+
+
+
+### 01F - 素数幂判定
+
+判断整数是否能写成质数的正整数次幂，并按查询规模选择实现。
+依赖线性筛。
+试除版为 $\mathcal O(\sqrt n)$，筛表版单次为 $\mathcal O(\log n)$，详见 `01FA`、`01FB`。
+
+### 01FA - 检查是否是素数的幂（试除）
+
+判断 $n$ 是否可写成 $p^k$（$p$ 为质数，$k\ge1$），整数试除，无预处理。
+$\mathcal O(\sqrt n)$；已知值域且查询多时改用 `01FB`。
+
+```cpp
+inline bool ask(int n) {
+    if (n <= 1) return false;
+    for (int p = 2; p <= n / p; ++p) {
+        if (n % p != 0) continue;
+        do n /= p; while (n % p == 0);
+        return n == 1;
+    }
+    return true;  // 没有真因子，n 本身为质数。
+}
+```
+
+### 01FB - 检查是否是素数的幂（最小质因子）
+用最小质因数判断质数幂，给定最小质因数表。
+单次 $\mathcal O(\log n)$。
+范围已知且查询很多时使用，通常比 `01FA` 更快。
+
+```cpp
+inline bool ask(int n, const vector<int>& lp) {
+    if (n <= 1 || n >= lp.size()) return false;
+    int p = lp[n];
+    if (p <= 1) return false;
+    do n /= p; while (n % p == 0);
+    return n == 1;
+}
+```
+
+### 01G - Miller-Rabin 素性检验
+对 64 位整数做确定性素性检验。
+依赖快速幂。
+固定底数下约 $\mathcal O(\log n)$ 次模乘。
+对 `u64` 范围使用确定性底数；有 `__int128` 时模乘为常数，否则自动退化为按位加法。
+
+```cpp
+using u64 = uint64_t;
+using u128 = __uint128_t;
+
+namespace Miller {
+
+inline u64 mul(u64 a, u64 b, u64 mod) {
+    assert(mod > 0);
+    a %= mod;
+    b %= mod;
+#ifdef __SIZEOF_INT128__
+    return u128(a) * b % mod;
+#else
+    u64 res = 0;
+    while (b > 0) {
+        if (b & 1) res = res >= mod - a ? res - (mod - a) : res + a;
+        a = a >= mod - a ? a - (mod - a) : a + a;
+        b >>= 1;
+    }
+    return res;
+#endif
+}
+
+inline u64 power(u64 a, u64 e, u64 mod) {
+    u64 res = 1 % mod;
+    while (e > 0) {
+        if (e & 1) res = mul(res, a, mod);
+        a = mul(a, a, mod);
+        e >>= 1;
+    }
+    return res;
+}
+
+inline bool ask(u64 n) {
+    if (n < 2) return false;
+    for (u64 p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL, 29ULL, 31ULL, 37ULL}) {
+        if (n % p == 0) return n == p;
+    }
+    u64 d = n - 1;
+    int s = 0;
+    while ((d & 1) == 0) d >>= 1, ++s;
+    for (u64 a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
+        if (a % n == 0) continue;
+        u64 x = power(a % n, d, n);
+        if (x == 1 || x == n - 1) continue;
+        bool ok = true;
+        for (int r = 1; r < s; ++r) {
+            x = mul(x, x, n);
+            if (x == n - 1) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) return false;
+    }
+    return true;
+}
+}  // namespace Miller
+```
+
+### 01GA - Pollard-Rho 质因数分解
+分解 `u64` 大整数。
+依赖Miller-Rabin 素性检验。
+期望 $\mathcal O(n^{1/4})$。
+适合大整数、少量分解查询；小范围批量分解仍应使用筛法。
+
+```cpp
+using u64 = uint64_t;
+
+namespace Pollard {
+
+inline u64 add(u64 a, u64 b, u64 mod) {
+    return a >= mod - b ? a - (mod - b) : a + b;
+}
+
+inline u64 next(u64 x, u64 c, u64 mod) {
+    return add(Miller::mul(x, x, mod), c, mod);
+}
+
+inline u64 rand(u64 l, u64 r) {
+    static mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+    return uniform_int_distribution<u64>(l, r)(rng);
+}
+
+inline u64 find(u64 n) {
+    if (n % 2 == 0) return 2;
+    if (n % 3 == 0) return 3;
+    while (true) {
+        u64 c = rand(1, n - 1);
+        u64 x = rand(0, n - 1), y = x, d = 1;
+        while (d == 1) {
+            x = next(x, c, n);
+            y = next(next(y, c, n), c, n);
+            u64 dif = x >= y ? x - y : y - x;
+            d = gcd(dif, n);
+        }
+        if (d != n) return d;
+    }
+}
+
+inline void dfs(u64 n, vector<u64>& fac) {
+    if (n == 1) return;
+    if (Miller::ask(n)) {
+        fac.push_back(n);
+        return;
+    }
+    u64 d = find(n);
+    dfs(d, fac);
+    dfs(n / d, fac);
+}
+
+inline vector<u64> factor(u64 n) {
+    assert(n >= 1);
+    vector<u64> fac;
+    dfs(n, fac);
+    sort(fac.begin(), fac.end());
+    return fac;
+}
+}  // namespace Pollard
+```
+
+### 01I - 约数函数（枚举、个数、和）
+由质因数分解求约数统计量，已知质因数分解。
+枚举约数 $\mathcal O(\tau(n))$，其余按质因子种数线性。
+
+输入 $n=\prod p_i^{e_i}$ 的质因数分解，返回约数枚举、个数、和及欧拉函数；约数和用 `i128` 承载中间结果。
+
+```cpp
+
+using i128 = __int128_t;
+
+namespace Divisor {
+using Factor = vector<pair<int, int>>;
+
+inline void check(const Factor& fac) {
+    for (auto [pri, e] : fac) assert(pri > 1 && e >= 1);
+}
+
+inline vector<int> getDiv(const Factor& fac) {
+    check(fac);
+    vector<int> d{1};
+    for (auto [pri, e] : fac) {
+        int n = d.size();
+        int pw = 1;
+        for (int i = 1; i <= e; ++i) {
+            assert(pw <= numeric_limits<int>::max() / pri);
+            pw *= pri;
+            for (int i = 0; i < n; ++i) {
+                assert(d[i] <= numeric_limits<int>::max() / pw);
+                d.push_back(d[i] * pw);
+            }
+        }
+    }
+    sort(d.begin(), d.end());
+    return d;
+}
+
+inline int askCnt(const Factor& fac) {
+    check(fac);
+    int ans = 1;
+    for (auto [pri, e] : fac) {
+        assert(ans <= numeric_limits<int>::max() / (e + 1));
+        ans *= e + 1;
+    }
+    return ans;
+}
+
+inline i128 askSum(const Factor& fac) {
+    check(fac);
+    i128 ans = 1;
+    for (auto [pri, e] : fac) {
+        i128 pw = 1, sum = 1;
+        for (int i = 1; i <= e; ++i) {
+            pw *= pri;
+            sum += pw;
+        }
+        ans *= sum;
+    }
+    return ans;
+}
+
+inline int phi(const Factor& fac) {
+    check(fac);
+    i128 ans = 1;
+    for (auto [pri, e] : fac) {
+        i128 pk = 1;
+        for (int i = 1; i < e; ++i) pk *= pri;
+        ans *= pk * (pri - 1);
+    }
+    assert(ans <= numeric_limits<int>::max());
+    return ans;
+}
+}  // namespace Divisor
+```
+
+### 01J - 质数计数（Lehmer）
+求大范围质数计数函数，需预筛至 $\sqrt n$ 的质数。
+单次查询为亚线性（记作 $\mathcal O(n^{2/3}/\log n)$ 的典型量级），空间按预筛上界计。
+
+计算 $\pi(n)$，即不超过 $n$ 的质数个数。单次通常远快于开到 $n$ 的筛；默认预处理到 $5e6$，适合 $n$ 约 $1e13$ 及以内。  
+若 $n$ 更大，init(limit) 的 limit 至少应覆盖 $\sqrt{n}$；大量小范围查询直接使用线性筛。
+
+```cpp
+using i128 = __int128_t;
+
+using ld = long double;
+
+struct Lehmer {
+    int lim = 0;
+    vector<int> pri, pc;
+    unordered_map<int, int> mp;
+
+    explicit Lehmer(int mx = 5'000'000) {
+        init(mx);
+    }
+
+    void init(int mx) {
+        assert(mx >= 2);
+        lim = mx;
+        vector<bool> vis(mx + 1, false);
+        pc.assign(mx + 1, 0);
+        pri.clear();
+        for (int x = 2; x <= mx; ++x) {
+            if (!vis[x]) pri.push_back(x);
+            for (int p : pri) {
+                if (p > mx / x) break;
+                vis[p * x] = true;
+                if (x % p == 0) break;
+            }
+        }
+        for (int x = 1; x <= mx; ++x) pc[x] = pc[x - 1] + (!vis[x] && x >= 2);
+        mp.clear();
+    }
+
+    static int isqrt(int val) {
+        assert(val >= 0);
+        int rt = sqrtl(ld(val));
+        while (i128(rt + 1) * (rt + 1) <= val) ++rt;
+        while (i128(rt) * rt > val) --rt;
+        return rt;
+    }
+
+    static int icbrt(int val) {
+        assert(val >= 0);
+        int rt = cbrtl(ld(val));
+        while (i128(rt + 1) * (rt + 1) * (rt + 1) <= val) ++rt;
+        while (i128(rt) * rt * rt > val) --rt;
+        return rt;
+    }
+
+    int phi(int val, int pi) const {
+        if (pi == 0) return val;
+        if (pi == 1) return val - val / 2;
+        if (pi < pri.size() &&
+            pri[pi - 1] * pri[pi - 1] > val) {
+            assert(val <= lim);
+            return pc[val] - pi + 1;
+        }
+        return phi(val, pi - 1) - phi(val / pri[pi - 1], pi - 1);
+    }
+
+    int ask(int val) {
+        assert(val >= 0);
+        if (val <= lim) return pc[val];
+        if (auto it = mp.find(val); it != mp.end()) return it->second;
+
+        int a = ask(isqrt(isqrt(val)));
+        int b = ask(isqrt(val));
+        int c = ask(icbrt(val));
+        assert(b <= pri.size());
+        int ans = phi(val, a) + (b + a - 2) * (b - a + 1) / 2;
+        for (int i = a; i < b; ++i) {
+            int q = val / pri[i];
+            ans -= ask(q);
+            if (i < c) {
+                int hi = ask(isqrt(q));
+                for (int j = i; j < hi; ++j) ans -= ask(q / pri[j]) - j;
+            }
+        }
+        return mp[val] = ans;
+    }
+};
+```
+
+### 01K - 质数和（Min_25筛）
+
+求不超过 $n$ 的所有质数之和，是 Min_25 质数幂和筛的直接应用，默认用 `i128` 保证精确。
+约 $\mathcal O(n^{3/4}/\log n)$ 时间、$\mathcal O(\sqrt n)$ 空间。
+
+```cpp
+using i128 = __int128_t;
+
+using ld = long double;
+
+template <class T = i128> struct Min25 {
+    int n = 0, s = 0;
+    vector<int> w;
+    vector<int> id1, id2, pr;
+    vector<T> g, pre;
+
+    int id(int x) const { return x <= s ? id1[x] : id2[n / x]; }
+
+    static T tri(int x) {
+        int a = x, b = x + 1;
+        if (a & 1) b >>= 1;
+        else a >>= 1;
+        return T(a) * T(b);
+    }
+
+    T askSum(int _n) {
+        assert(_n >= 0);
+        n = _n;
+        if (n < 2) return T{};
+        s = sqrtl(static_cast<ld>(n));
+        while ((s + 1) <= n / (s + 1)) ++s;
+        while (s > n / s) --s;
+
+        vector<char> vis(s + 1);
+        pr.clear();
+        pre.assign(1, T{});
+        for (int i = 2; i <= s; ++i) {
+            if (!vis[i]) {
+                pr.push_back(i);
+                pre.push_back(pre.back() + T(i));
+            }
+            for (int p : pr) {
+                if (i * p > s) break;
+                vis[i * p] = true;
+                if (i % p == 0) break;
+            }
+        }
+
+        w.clear(), g.clear();
+        id1.assign(s + 1, 0), id2.assign(s + 1, 0);
+        for (int l = 1, r; l <= n; l = r + 1) {
+            int v = n / l;
+            r = n / v;
+            int k = w.size();
+            w.push_back(v);
+            g.push_back(tri(v) - T(1));
+            if (v <= s) id1[v] = k;
+            else id2[n / v] = k;
+        }
+
+        for (int i = 0; i < pr.size(); ++i) {
+            int p = pr[i];
+            if (p > n / p) break;
+            int pp = p * p;
+            for (int j = 0; j < w.size() && w[j] >= pp; ++j)
+                g[j] -= T(p) * (g[id(w[j] / p)] - pre[i]);
+        }
+        return g[id(n)];
+    }
+};
+```
+
+## 02 - 模运算、同余与离散对数
+
+### 02A - 快速幂（ModArith64）
+提供 64 位安全模乘、模幂和逆元，基于固定宽度整数。
+模幂 $\mathcal O(\log e)$，无宽整数时模乘约 $\mathcal O(\log\textrm{mod})$。
+
+`inv` 仅在模数为质数且 $a$ 非 $0$ 时按费马逆元使用；GCC/Clang 的宽整数分支为常数级模乘，否则退化为按位加法。
+
+```cpp
+using u64 = uint64_t;
+using u128 = __uint128_t;
+
+namespace ModArith64 {
+
+inline u64 mul(u64 a, u64 b, u64 mod) {
+    assert(mod > 0);
+    a %= mod;
+    b %= mod;
+#ifdef __SIZEOF_INT128__
+    return u128(a) * b % mod;
+#else
+    u64 res = 0;
+    while (b > 0) {
+        if (b & 1) res = res >= mod - a ? res - (mod - a) : res + a;
+        a = a >= mod - a ? a - (mod - a) : a + a;
+        b >>= 1;
+    }
+    return res;
+#endif
+}
+
+inline u64 power(u64 a, u64 e, u64 mod) {
+    assert(mod > 0);
+    u64 res = 1 % mod;
+    while (e > 0) {
+        if (e & 1) res = mul(res, a, mod);
+        a = mul(a, a, mod);
+        e >>= 1;
+    }
+    return res;
+}
+
+inline u64 inv(u64 a, u64 mod) {
+    assert(mod > 1 && a % mod != 0);
+    return power(a % mod, mod - 2, mod);
+}
+}  // namespace ModArith64
+```
+
+### 02B - 自动取模（MInt）
+封装编译期或运行时模数的整数运算，支持编译期或运行时模数，可用 __int128 加速。
+常规运算 $\mathcal O(1)$。
+
+编译期模数直接使用 `MInt<P>`；`P=0` 时先调用 `MInt<0>::setMod(p)`。
+
+```cpp
+using i32 = int32_t;
+
+constexpr i32 mod = 998244353;
+
+template <class T> T mypow(T a, int n) {
+    assert(n >= 0);
+    T r = T(1);
+    while (n) {
+        if (n & 1) r *= a;
+        a *= a;
+        n >>= 1;
+    }
+    return r;
+}
+
+template <i32 P> struct MInt {
+    static_assert(P >= 0);
+
+    i32 x = 0;
+    inline static i32 md = P ? P : mod;
+
+    MInt() = default;
+    MInt(int v) : x(norm(v)) {}
+
+    static i32 askMod() {
+        return P ? P : md;
+    }
+
+    static void setMod(i32 v) {
+        static_assert(P == 0, "Only MInt<0> supports a dynamic modulus.");
+        assert(v > 1);
+        md = v;
+    }
+
+    static i32 norm(int v) {
+        v %= askMod();
+        if (v < 0) v += askMod();
+        return static_cast<i32>(v);
+    }
+
+    i32 val() const {
+        return x;
+    }
+
+    explicit operator i32() const {
+        return x;
+    }
+
+    bool ask0() const {
+        return x == 0;
+    }
+
+    MInt pow(int n) const {
+        return mypow(*this, n);
+    }
+
+    MInt inv() const {
+        assert(x);
+        return pow(askMod() - 2);
+    }
+
+    MInt operator-() const {
+        return MInt(x ? askMod() - x : 0);
+    }
+
+    MInt& operator+=(MInt a) {
+        i32 p = askMod();
+        if (x >= p - a.x) x -= p - a.x;
+        else x += a.x;
+        return *this;
+    }
+
+    MInt& operator-=(MInt a) {
+        x -= a.x;
+        if (x < 0) x += askMod();
+        return *this;
+    }
+
+    MInt& operator*=(MInt a) {
+        x = static_cast<i32>(static_cast<int>(x) * a.x % askMod());
+        return *this;
+    }
+
+    MInt& operator/=(MInt a) {
+        return *this *= a.inv();
+    }
+
+    MInt& operator++() {
+        return *this += 1;
+    }
+
+    MInt operator++(i32) {
+        MInt a = *this;
+        ++*this;
+        return a;
+    }
+
+    MInt& operator--() {
+        return *this -= 1;
+    }
+
+    MInt operator--(i32) {
+        MInt a = *this;
+        --*this;
+        return a;
+    }
+
+    friend MInt operator+(MInt a, MInt b) {
+        return a += b;
+    }
+
+    friend MInt operator-(MInt a, MInt b) {
+        return a -= b;
+    }
+
+    friend MInt operator*(MInt a, MInt b) {
+        return a *= b;
+    }
+
+    friend MInt operator/(MInt a, MInt b) {
+        return a /= b;
+    }
+
+    friend bool operator==(MInt a, MInt b) {
+        return a.x == b.x;
+    }
+
+    friend bool operator!=(MInt a, MInt b) {
+        return a.x != b.x;
+    }
+
+    friend istream& operator>>(istream& is, MInt& a) {
+        int x;
+        is >> x;
+        a = MInt(x);
+        return is;
+    }
+
+    friend ostream& operator<<(ostream& os, const MInt& a) {
+        return os << a.x;
+    }
+};
+
+template <i32 V, i32 P> const MInt<P> IV = MInt<P>(V).inv();
+
+using Z = MInt<mod>;
+```
+
+### 02BA - Barrett约简（u32）
+用 Barrett 约简加速固定 `u32` 模数乘法，基于 u64 乘法。
+单次乘法 $\mathcal O(1)$。
+
+固定 $u32$ 模数下的 Barrett 模乘，避免每次 64 位除法。  
+`Barrett bt(p); bt.mul(a,b)`，其中 $1 \leq p < 2^31$，$0 \leq a,b < p$。适合运行时 $u32$ 模数且乘法极多的卡常环境。
+
+```cpp
+using u32 = uint32_t;
+using u64 = uint64_t;
+using u128 = __uint128_t;
+
+struct Barrett {
+    u32 md;
+    u64 im;
+
+    explicit Barrett(u32 md) : md(md), im(u64(-1) / md + 1) {
+        assert(0 < md && md < (u32(1) << 31));
+    }
+
+    u32 mul(u32 a, u32 b) const {
+        u64 z = u64(a) * b;
+        u64 q = u128(z) * im >> 64;
+        u32 r = z - q * md;
+        if (r >= md) r += md;
+        return r;
+    }
+};
+```
+
+### 02C - 裴蜀定理
+判断线性整系数方程是否可解，基于最大公因数与扩展欧几里得。
+二元方程为 $\mathcal O(\log\max(|a|,|b|))$，多元版本随输入项数线性增加。
+
+裴蜀定理把整系数线性组合归约为最大公因数整除判定，右端常数通过 `target` 传入。
+
+```cpp
+inline int gcdAll(const vector<int>& a) {
+    int res = 0;
+    for (int val : a) res = gcd(res, val);
+    return res >= 0 ? res : -res;
+}
+
+inline bool ask(const vector<int>& coe, int t) {
+    int d = gcdAll(coe);
+    return d == 0 ? t == 0 : t % d == 0;
+}
+```
+
+### 02CA - 扩展欧几里得（exgcd）
+求 Bezout 系数与任意模数逆元，基于整数除法。
+$\mathcal O(\log\min(a,b))$。
+
+返回 $ax+by=\gcd(a,b)$ 的一组系数，并在互质时提供任意模数逆元 `inv(a,m)`。
+
+```cpp
+struct ExgcdRes {
+    int gcd, x, y;
+};
+
+inline ExgcdRes exgcd(int a, int b) {
+    if (b == 0) return {a >= 0 ? a : -a, a >= 0 ? 1 : -1, 0};
+    auto sub = exgcd(b, a % b);
+    return {sub.gcd, sub.y, sub.x - (a / b) * sub.y};
+}
+
+inline optional<int> inv(int a, int mod) {
+    assert(mod > 0);
+    auto res = exgcd(a, mod);
+    if (res.gcd != 1) return nullopt;
+    int inv = res.x % mod;
+    if (inv < 0) inv += mod;
+    return inv;
+}
+```
+
+### 02CB - 中国剩余定理
+合并互质或非互质同余方程。
+依赖模运算、扩展欧几里得。
+$\mathcal O(k\log M)$，其中 $k$ 为方程数、$M$ 为模数规模。
+
+合并可不互质的同余方程；无解或合并模数超出 `int` 范围时返回 `nullopt`。
+
+```cpp
+struct CRTResult {
+    int r;  // 始终规范到 [0, modulus)。
+    int mod;
+};
+
+inline int norm(int val, int mod) {
+    val %= mod;
+    return val < 0 ? val + mod : val;
+}
+
+inline optional<CRTResult> merge(CRTResult x, CRTResult y) {
+    assert(x.mod > 0 && y.mod > 0);
+    x.r = norm(x.r, x.mod);
+    y.r = norm(y.r, y.mod);
+
+    int g = gcd(x.mod, y.mod);
+    int dif = y.r - x.r;
+    if (dif % g != 0) return nullopt;
+
+    int b = y.mod / g;
+    if (x.mod > numeric_limits<int>::max() / b) return nullopt;
+    int lcm = x.mod * b;
+
+    int k = 0;
+    if (b != 1) {
+        auto iv = inv(x.mod / g, b);
+        assert(iv.has_value());
+        int rhs = norm(dif / g, b);
+        k = ModArith64::mul(rhs, *iv, b);
+    }
+
+    int add = ModArith64::mul(x.mod, k, lcm);
+    int r = x.r >= lcm - add
+                            ? x.r - (lcm - add)
+                            : x.r + add;
+    return CRTResult{r, lcm};
+}
+
+inline optional<CRTResult> crt(const vector<CRTResult>& eq) {
+    if (eq.empty()) return CRTResult{0, 1};
+    CRTResult res = eq[0];
+    if (res.mod <= 0) return nullopt;
+    res.r = norm(res.r, res.mod);
+    for (int i = 1; i < eq.size(); ++i) {
+        if (eq[i].mod <= 0) return nullopt;
+        auto z = merge(res, eq[i]);
+        if (!z) return nullopt;
+        res = *z;
+    }
+    return res;
+}
+```
+
+### 02CC - 扩展 Lucas（组合数模合数）
+求合数模下的组合数。
+依赖模运算、扩展欧几里得、中国剩余定理。
+预处理按质数幂规模，单次查询为 $\mathcal O(\log_p n)$ 的乘积级。
+
+计算合数模组合数；每个质数幂因子预处理线性表，适合模数分解后各因子幂可开（典型 $m\le2\times10^6$）。
+
+```cpp
+namespace ExLucas {
+struct Comb {
+    int pri, pk;
+    int pe = 0;
+    vector<int> fac;
+
+    Comb(int p, int pk, int pe)
+        : pri(p), pk(pk), pe(pe) {
+        assert(pri >= 2 && pk >= pri && pk <= numeric_limits<int>::max());
+        fac.assign(pk + 1, 1);
+        for (int val = 1; val <= pk; ++val) {
+            fac[val] = fac[val - 1];
+            if (val % pri != 0) {
+                fac[val] = ModArith64::mul(fac[val], val, pk);
+            }
+        }
+    }
+
+    int cntP(int val) const {
+        int ans = 0;
+        while (val > 0) val /= pri, ans += val;
+        return ans;
+    }
+
+    int facP(int val) const {
+        if (val == 0) return 1;
+        int ans = ModArith64::power(fac[pk], val / pk, pk);
+        ans = ModArith64::mul(ans, fac[val % pk], pk);
+        return ModArith64::mul(ans, facP(val / pri), pk);
+    }
+
+    int C(int n, int k) const {
+        if (k < 0 || k > n) return 0;
+        int e = cntP(n) - cntP(k) - cntP(n - k);
+        if (e >= pe) return 0;
+
+        int a = facP(n);
+        int bl = facP(k);
+        int br = facP(n - k);
+        auto il = inv(bl, pk);
+        auto ir = inv(br, pk);
+        assert(il && ir);
+        int ans = ModArith64::mul(a, *il, pk);
+        ans = ModArith64::mul(ans, *ir, pk);
+        ans = ModArith64::mul(ans, ModArith64::power(pri, e, pk), pk);
+        return ans;
+    }
+};
+
+inline vector<tuple<int, int, int>> factor(int mod) {
+    assert(mod >= 1);
+    vector<tuple<int, int, int>> fac;
+    for (int d = 2; d <= mod / d; ++d) {
+        if (mod % d != 0) continue;
+        int pk = 1;
+        int e = 0;
+        do {
+            mod /= d;
+            pk *= d;
+            ++e;
+        } while (mod % d == 0);
+        fac.emplace_back(d, pk, e);
+    }
+    if (mod > 1) fac.emplace_back(mod, mod, 1);
+    return fac;
+}
+
+inline int C(int n, int k, int mod) {
+    assert(n >= 0 && mod > 0);
+    if (k < 0 || k > n || mod == 1) return 0;
+    vector<CRTResult> eq;
+    for (auto [pri, pk, e] : factor(mod)) {
+        Comb cal(pri, pk, e);
+        eq.push_back({cal.C(n, k), pk});
+    }
+    auto res = crt(eq);
+    assert(res && res->mod == mod);
+    return res->r;
+}
+}  // namespace ExLucas
+```
+
+### 02D - BSGS
+求离散对数并兼容非互质扩展。
+依赖模运算、扩展欧几里得。
+$\mathcal O(\sqrt m)$ 时间与空间。
+
+求最小非负离散对数；`bsgs` 要求互质，`exBSGS` 允许非互质，失败均返回 `nullopt`。
+
+```cpp
+using ld = long double;
+
+namespace BSGS {
+inline int norm(int val, int mod) {
+    val %= mod;
+    return val < 0 ? val + mod : val;
+}
+
+inline optional<int> bsgs(int a, int b, int mod) {
+    assert(mod > 0);
+    if (mod == 1) return 0;
+    a = norm(a, mod);
+    b = norm(b, mod);
+    if (b == 1) return 0;
+    if (gcd(a, mod) != 1) return nullopt;
+
+    int blk = sqrtl(ld(mod));
+    while (blk < mod / blk || (blk == mod / blk && blk * blk < mod)) ++blk;
+
+    unordered_map<int, int> bb;
+    bb.reserve(blk * 2 + 1);
+    int cur = 1;
+    for (int j = 0; j < blk; ++j) {
+        if (!bb.count(cur)) bb.emplace(cur, j);
+        cur = ModArith64::mul(cur, a, mod);
+    }
+
+    auto ia = inv(a, mod);
+    assert(ia.has_value());
+    int gs = ModArith64::power(*ia, blk, mod);
+    cur = b;
+    for (int i = 0; i <= blk; ++i) {
+        auto it = bb.find(cur);
+        if (it != bb.end()) return i * blk + it->second;
+        cur = ModArith64::mul(cur, gs, mod);
+    }
+    return nullopt;
+}
+
+inline optional<int> exBSGS(int a, int b, int mod) {
+    assert(mod > 0);
+    if (mod == 1) return 0;
+    a = norm(a, mod);
+    b = norm(b, mod);
+    if (b == 1) return 0;
+
+    int ban = 0, scl = 1;
+    while (true) {
+        int g = gcd(a, mod);
+        if (g == 1) break;
+        if (b == scl) return ban;
+        if (b % g != 0) return nullopt;
+        b /= g;
+        mod /= g;
+        ++ban;
+        if (mod == 1) return ban;
+        scl = ModArith64::mul(scl, a / g, mod);
+    }
+
+    auto is = inv(scl, mod);
+    assert(is.has_value());
+    auto rem = bsgs(a, ModArith64::mul(b, *is, mod), mod);
+    return rem ? optional<int>(*rem + ban) : nullopt;
+}
+}  // namespace BSGS
+```
+
+### 02E - 逆元线性预处理
+一次预处理质数模下所有小整数逆元，适用于 $n<\textrm{mod}$。
+$\mathcal O(n)$ 时间与空间。
+
+在质数模下线性预处理 $1\dots n$ 的逆元；`Z::askMod()` 必须为质数且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z> vector<Z> invAll(int n) {
+    assert(n >= 0 && n < Z::askMod());
+    vector<Z> iv(n + 1);
+    if (n) iv[1] = Z(1);
+    int p = Z::askMod();
+    for (int i = 2; i <= n; ++i) iv[i] = Z(p - p / i) * iv[p % i];
+    return iv;
+}
+```
+
+### 02F - 模平方根
+
+求质数模下的平方根，并按确定性或随机扩域需求选择实现。
+两种实现均为模数位数的多对数，即 $\tilde{\mathcal O}(\log p)$。
+
+### 02FA - 模平方根（Tonelli-Shanks）
+求质数模下的平方根，适用于质数模。
+$\tilde{\mathcal O}(\log p)$，确定性地返回根或 `nullopt`。
+
+在质数模下求 $x^2=a$ 的一组解；无解返回 `nullopt`。
+
+```cpp
+template <class Z> optional<Z> sqrt(Z a) {
+    int p = Z::askMod();
+    assert(p >= 2);
+    if (a == Z(0) || p == 2) return a;
+    if (a.pow((p - 1) / 2) != Z(1)) return nullopt;
+    if (p % 4 == 3) return a.pow((p + 1) / 4);
+
+    int s = 0;
+    int q = p - 1;
+    while (!(q & 1)) q >>= 1, ++s;
+    Z z = 2;
+    while (z.pow((p - 1) / 2) == Z(1)) ++z;
+    Z x = a.pow((q + 1) / 2), b = a.pow(q), c = z.pow(q);
+    int m = s;
+    while (b != Z(1)) {
+        int i = 1;
+        Z d = b * b;
+        while (i < m && d != Z(1)) d *= d, ++i;
+        assert(i < m);
+        Z t = c.pow(1LL << (m - i - 1));
+        x *= t;
+        c = t * t;
+        b *= c;
+        m = i;
+    }
+    return x;
+}
+```
+
+### 02FB - 模平方根（Cipolla）
+用随机二次扩域求模平方根，适用于质数模。
+约 $\mathcal O(\log p)$ 次域乘法。
+
+在质数模下随机扩域求平方根；无解返回 `nullopt`，与确定性的 `02FA` 为两种实现。
+
+```cpp
+template <class Z> optional<Z> cipolla(Z n) {
+    int p = Z::askMod();
+    assert(p >= 2);
+    if (p == 2 || n == Z(0)) return n;
+    if (n.pow((p - 1) / 2) != Z(1)) return nullopt;
+
+    static mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+    Z a, w;
+    do {
+        a = Z(rng() % p);
+        w = a * a - n;
+    } while (w.pow((p - 1) / 2) != Z(p - 1));
+
+    auto mul = [&](array<Z, 2> x, array<Z, 2> y) {
+        return array<Z, 2>{x[0] * y[0] + x[1] * y[1] * w,
+                           x[0] * y[1] + x[1] * y[0]};
+    };
+    array<Z, 2> r{Z(1), Z(0)}, b{a, Z(1)};
+    for (int k = (p + 1) / 2; k; k >>= 1) {
+        if (k & 1) r = mul(r, b);
+        b = mul(b, b);
+    }
+    return r[0];
+}
+```
+
+### 02G - 原根
+判断原根存在性并求最小或全部原根，需分解 $\varphi(m)$。
+依赖模运算。
+试除分解约 $\mathcal O(\sqrt m)$，枚举按 $\mathcal O(\varphi(m))$ 计。
+
+先判定原根存在性，再求最小或全部原根；接口为 `exist/solve/roots/ask`，分解与枚举复杂度按质因子数和原根数量计。
+
+```cpp
+namespace PrimRoot {
+inline vector<int> factor(int val) {
+    assert(val >= 1);
+    vector<int> fac;
+    for (int d = 2; d <= val / d; ++d) {
+        if (val % d != 0) continue;
+        fac.push_back(d);
+        do val /= d; while (val % d == 0);
+    }
+    if (val > 1) fac.push_back(val);
+    return fac;
+}
+
+inline bool exist(int mod) {
+    assert(mod >= 2);
+    if (mod == 2 || mod == 4) return true;
+    int x = mod, c = 0;
+    while (x % 2 == 0) x /= 2, ++c;
+    if (c > 1 || x == 1) return false;
+    int p = 0;
+    for (int d = 3; d <= x / d; d += 2) {
+        if (x % d == 0) {
+            p = d;
+            break;
+        }
+    }
+    if (!p) return true;
+    while (x % p == 0) x /= p;
+    return x == 1;
+}
+
+inline int phi(int mod) {
+    int res = mod;
+    for (int p : factor(mod)) res = res / p * (p - 1);
+    return res;
+}
+
+inline bool ask(int g, int mod, int ph, const vector<int>& fac) {
+    g %= mod;
+    if (g <= 0) g += mod;
+    if (gcd(g, mod) != 1) return false;
+    for (int p : fac) {
+        if (ModArith64::power(g, ph / p, mod) == 1) return false;
+    }
+    return true;
+}
+
+inline bool ask(int g, int mod) {
+    assert(mod >= 2);
+    if (!exist(mod)) return false;
+    int ph = phi(mod);
+    return ask(g, mod, ph, factor(ph));
+}
+
+inline int find(int mod, int ph, const vector<int>& fac) {
+    for (int g = 1; g < mod; ++g) {
+        if (ask(g, mod, ph, fac)) return g;
+    }
+    return -1;
+}
+
+inline int solve(int mod) {
+    assert(mod >= 2);
+    if (!exist(mod)) return -1;
+    int ph = phi(mod);
+    return find(mod, ph, factor(ph));
+}
+
+inline vector<int> roots(int mod) {
+    assert(mod >= 2);
+    if (!exist(mod)) return {};
+    int ph = phi(mod);
+    vector<int> fac = factor(ph);
+    int g = find(mod, ph, fac), cnt = phi(ph);
+    vector<int> res;
+    res.reserve(cnt);
+    for (int k = 1, x = g; k <= ph; ++k) {
+        if (gcd(k, ph) == 1) res.push_back(x);
+        x = ModArith64::mul(x, g, mod);
+    }
+    sort(res.begin(), res.end());
+    return res;
+}
+}  // namespace PrimRoot
+```
+
+### 02H - 整除分块求和（floor_sum）
+求线性取整和并处理整除分块，基于欧几里得递归。
+$\mathcal O(\log\max(a,m))$。
+
+求非负参数的整除分块和，要求 $m>0$；返回 `i128`，调用方负责按答案范围输出。
+
+```cpp
+using i128 = __int128_t;
+
+namespace FloorSum {
+inline i128 flrSum(int n, int m, int a, int b) {
+    assert(n >= 0 && m > 0 && a >= 0 && b >= 0);
+    i128 cnt = n, mod = m, coe = a, off = b, ans = 0;
+    while (true) {
+        if (coe >= mod) {
+            ans += (cnt - 1) * cnt * (coe / mod) / 2;
+            coe %= mod;
+        }
+        if (off >= mod) {
+            ans += cnt * (off / mod);
+            off %= mod;
+        }
+        i128 mx = coe * cnt + off;
+        if (mx < mod) break;
+        cnt = mx / mod;
+        off = mx % mod;
+        swap(mod, coe);
+    }
+    return ans;
+}
+}  // namespace FloorSum
+```
+
+### 02HA - 加权整除和（万能欧几里得）
+同时统计取整和、一阶矩和二阶矩，要求 $2$、$6$ 在系数域中可逆。
+$\mathcal O(\log\max(a,c))$。
+
+在 `02H` 基础上同时求零阶、一阶和二阶矩；要求 $a,b,n\ge0$、$c>0$，且 $2,6$ 在 `Z` 中可逆。
+
+```cpp
+template <class Z> struct Euclid {
+    struct Ans {
+        Z s, t, u;
+    };
+
+    static Z sum1(int n) {
+        return Z(n) * Z(n + 1) / Z(2);
+    }
+
+    static Z sum2(int n) {
+        return Z(n) * Z(n + 1) * Z(n * 2 + 1) / Z(6);
+    }
+
+    static Ans ask(int a, int b, int c, int n) {
+        assert(a >= 0 && b >= 0 && c > 0 && n >= 0);
+        assert(Z(2) != Z(0) && Z(6) != Z(0));
+        if (a >= c || b >= c) {
+            int q = a / c, p = b / c;
+            Ans x = ask(a % c, b % c, c, n);
+            Z m = n + 1, s = sum1(n), t = sum2(n);
+            Z qz = q, pz = p;
+            return {
+                qz * s + pz * m + x.s,
+                qz * t + pz * s + x.t,
+                qz * qz * t + pz * pz * m + Z(2) * qz * pz * s + Z(2) * qz * x.t + Z(2) * pz * x.s + x.u,
+            };
+        }
+        if (!a) return {};
+        int m = (a * n + b) / c;
+        if (!m) return {};
+        Ans x = ask(c, c - b - 1, a, m - 1);
+        Z mz = m, nz = n;
+        return {
+            nz * mz - x.s,
+            mz * sum1(n) - (x.u + x.s) / Z(2),
+            nz * mz * mz - Z(2) * x.t - x.s,
+        };
+    }
+};
+```
+
+### 02I - 大指数模幂（十进制）
+底数或指数为十进制大整数时计算模幂。
+依赖模运算。
+按输入十进制位数线性乘以 $\mathcal O(\log 10)$。
+
+支持十进制大整数底数或指数的模幂；接口 `askMod`、`solve` 不要求底数与模数互质，复杂度按十进制位数线性。
+
+```cpp
+namespace BigPow {
+inline int askMod(const string& s, int md) {
+    assert(md > 0 && !s.empty());
+    int ans = 0;
+    for (char c : s) {
+        assert('0' <= c && c <= '9');
+        ans = (ModArith64::mul(ans, 10, md) + c - '0') % md;
+    }
+    return ans;
+}
+
+inline int solve(int a, const string& b, int md) {
+    assert(md > 0 && !b.empty());
+    a %= md;
+    if (a < 0) a += md;
+    int ans = 1 % md;
+    for (char c : b) {
+        assert('0' <= c && c <= '9');
+        ans = ModArith64::mul(ans, ModArith64::power(ans, 9, md), md);
+        if (c != '0') ans = ModArith64::mul(ans, ModArith64::power(a, c - '0', md), md);
+    }
+    return ans;
+}
+
+inline int solve(const string& a, const string& b, int md) {
+    return solve(askMod(a, md), b, md);
+}
+}  // namespace BigPow
+```
+
+### 02J - Pohlig-Hellman（离散对数，光滑群阶）
+在群阶光滑时求离散对数，需已知 $p-1$ 的质因数分解。
+依赖模运算、扩展欧几里得。
+$\mathcal O(\sum\sqrt q\log p)$。
+
+`p` 为质数、`g` 为原根，`fac` 为 `p-1` 的质因子分解；`solve` 返回最小非负离散对数，群阶光滑时使用。
+
+```cpp
+namespace Pohlig {
+inline vector<pii> factor(int x) {
+    vector<pii> res;
+    for (int p = 2; p <= x / p; ++p) {
+        if (x % p) continue;
+        int e = 0;
+        do x /= p, ++e; while (x % p == 0);
+        res.push_back({p, e});
+    }
+    if (x > 1) res.push_back({x, 1});
+    return res;
+}
+
+inline optional<int> askLog(int a, int b, int md, int ord) {
+    int blk = sqrtl(ord);
+    while (blk < ord / blk || (blk == ord / blk && blk * blk < ord)) ++blk;
+    unordered_map<int, int> mp;
+    mp.reserve(blk * 2 + 1);
+    int cur = 1;
+    for (int j = 0; j < blk; ++j) {
+        if (!mp.count(cur)) mp.emplace(cur, j);
+        cur = ModArith64::mul(cur, a, md);
+    }
+    int stp = ModArith64::power(a, (ord - blk % ord) % ord, md);
+    cur = b;
+    for (int i = 0; i <= blk; ++i) {
+        auto it = mp.find(cur);
+        if (it != mp.end()) {
+            int x = i * blk + it->second;
+            if (x < ord) return x;
+        }
+        cur = ModArith64::mul(cur, stp, md);
+    }
+    return nullopt;
+}
+
+inline optional<int> solve(int g, int h, int md, const vector<pii>& fac) {
+    assert(md >= 2);
+    g %= md;
+    h %= md;
+    if (g < 0) g += md;
+    if (h < 0) h += md;
+    if (!g || !h) return nullopt;
+    if (md == 2) return h == 1 ? optional<int>(0) : nullopt;
+
+    int ord = md - 1, all = 1;
+    for (auto [q, e] : fac) {
+        assert(q > 1 && e > 0);
+        for (int i = 0; i < e; ++i) all *= q;
+    }
+    if (all != ord) return nullopt;
+
+    int ans = 0, mul = 1;
+    for (auto [q, e] : fac) {
+        int cur = 0, pw = 1, qe = 1;
+        int bas = ModArith64::power(g, ord / q, md);
+        for (int i = 0; i < e; ++i) {
+            int ig = ModArith64::power(g, (ord - cur % ord) % ord, md);
+            int val = ModArith64::mul(h, ig, md);
+            val = ModArith64::power(val, ord / (pw * q), md);
+            auto dig = askLog(bas, val, md, q);
+            if (!dig) return nullopt;
+            cur += *dig * pw;
+            pw *= q;
+            qe *= q;
+        }
+
+        int dif = (cur - ans) % qe;
+        if (dif < 0) dif += qe;
+        auto iv = inv(mul % qe, qe);
+        assert(iv.has_value());
+        int k = ModArith64::mul(dif, *iv, qe);
+        int nxt = mul * qe;
+        ans = (ans + ModArith64::mul(mul, k, nxt)) % nxt;
+        mul = nxt;
+    }
+    return ans;
+}
+
+inline optional<int> solve(int g, int h, int md) {
+    return solve(g, h, md, factor(md - 1));
+}
+}  // namespace Pohlig
+```
+
+### 02K - 值域GCD预处理
+
+固定小值域一端时批量求大整数 gcd。
+预处理约 $\mathcal O(n)$，单次查询 $\mathcal O(1)$，空间 $\mathcal O(n)$。
+
+预处理固定小值域内的 GCD 统计，适合 $x$ 较小、$y$ 很大且查询很多的场景；大表可用 `i32` 压缩，单次 GCD 不应使用。
+
+```cpp
+using i32 = int32_t;
+
+struct FastGCD {
+    i32 n, b;
+    vector<i32> p;
+    vector<bool> ip;
+    vector<array<i32, 3>> fac;
+    vector<vector<i32>> gd;
+
+    explicit FastGCD(i32 m = 1'000'000) {
+        init(m);
+    }
+
+    void init(i32 m) {
+        assert(m >= 1);
+        n = m;
+        b = 1;
+        while (1LL * (b + 1) * (b + 1) <= n) ++b;
+        gd.assign(b + 1, vector<i32>(b + 1));
+        for (i32 i = 0; i <= b; ++i) gd[i][0] = gd[0][i] = i;
+        for (i32 i = 1; i <= b; ++i)
+            for (i32 j = i; j <= b; ++j) gd[i][j] = gd[j][i] = gd[i][j % i];
+
+        p.clear();
+        ip.assign(n + 1, true);
+        ip[0] = false;
+        if (n >= 1) ip[1] = false;
+        fac.assign(n + 1, {});
+        fac[1] = {1, 1, 1};
+        for (i32 i = 2; i <= n; ++i) {
+            if (ip[i]) {
+                p.push_back(i);
+                fac[i] = {1, 1, i};
+            }
+            for (i32 q : p) {
+                if (i > n / q) break;
+                i32 v = i * q;
+                ip[v] = false;
+                fac[v] = fac[i];
+                *min_element(fac[v].begin(), fac[v].end()) *= q;
+                if (i % q == 0) break;
+            }
+        }
+    }
+
+    i32 ask0(i32 x, int y) const {
+        i32 r = y % x;
+        return ip[x] ? (r ? 1 : x) : gd[r][x];
+    }
+
+    int ask(i32 x, int y) const {
+        if (!x) return y < 0 ? -y : y;
+        assert(x <= n);
+        if (y < 0) y = -y;
+        i32 a = ask0(fac[x][0], y);
+        y /= a;
+        i32 b = ask0(fac[x][1], y);
+        y /= b;
+        i32 c = ask0(fac[x][2], y);
+        return 1LL * a * b * c;
+    }
+};
+```
+
+### 02L - 最小乘法阶
+
+求互质元素在模数下的最小乘法阶。
+依赖快速幂。
+分解群阶后按不同质因子逐次试除，约为 $\mathcal O(\sum\log m)$ 次模幂。
+
+求互质元素在模数下的最小乘法阶；要求 $m>1$、$\gcd(a,m)=1$，可自动或使用已知群阶分解逐质因子约除。
+
+```cpp
+namespace MulOrd {
+inline vector<int> factor(int x) {
+    assert(x >= 1);
+    vector<int> f;
+    for (int p = 2; p <= x / p; ++p) {
+        if (x % p) continue;
+        f.push_back(p);
+        do x /= p; while (x % p == 0);
+    }
+    if (x > 1) f.push_back(x);
+    return f;
+}
+
+inline int phi(int m) {
+    assert(m >= 1);
+    int r = m;
+    for (int p : factor(m)) r = r / p * (p - 1);
+    return r;
+}
+
+inline int ask(int a, int m, int k, const vector<int> &fac) {
+    assert(m > 1 && k > 0 && gcd(a, m) == 1);
+    a %= m;
+    if (a < 0) a += m;
+    for (int p : fac) {
+        assert(p > 1);
+        while (k % p == 0 && ModArith64::power(a, k / p, m) == 1) k /= p;
+    }
+    return k;
+}
+
+inline int ask(int a, int m, int k) {
+    return ask(a, m, k, factor(k));
+}
+
+inline int ask(int a, int m) {
+    int k = phi(m);
+    return ask(a, m, k);
+}
+}  // namespace MulOrd
+```
+
+## 03 - 组合数学、插值与线性递推
+
+### 03A - 组合数学（Comb, with Z）
+预处理阶乘、逆阶乘并计算组合数与排列数，适用于质数模。
+首次扩展 $\mathcal O(n)$，单次查询 $\mathcal O(1)$。
+
+预处理阶乘、逆阶乘并提供组合数与排列数；`Z` 为质数模自动取模类型，要求查询上界小于模数。
+
+```cpp
+template <class Z> struct Comb {
+    int n = 0;
+    vector<Z> f{Z(1)}, g{Z(1)};
+
+    Comb() = default;
+    explicit Comb(int m) {
+        init(m);
+    }
+
+    void init(int m) {
+        assert(m >= 0 && m < Z::askMod());
+        if (m <= n) return;
+        f.resize(m + 1);
+        g.resize(m + 1);
+        for (int i = n + 1; i <= m; ++i) f[i] = f[i - 1] * i;
+        g[m] = f[m].inv();
+        for (int i = m; i > n; --i) g[i - 1] = g[i] * i;
+        n = m;
+    }
+
+    Z fac(int x) {
+        assert(x >= 0);
+        if (x > n) init(x);
+        return f[x];
+    }
+
+    Z ifac(int x) {
+        assert(x >= 0);
+        if (x > n) init(x);
+        return g[x];
+    }
+
+    Z C(int x, int k) {
+        if (x < 0 || k < 0 || k > x) return Z(0);
+        return fac(x) * ifac(k) * ifac(x - k);
+    }
+
+    Z A(int x, int k) {
+        if (x < 0 || k < 0 || k > x) return Z(0);
+        return fac(x) * ifac(x - k);
+    }
+};
+```
+
+### 03B - Lucas 定理
+在小质数模下计算大参数组合数，适用于质数模。
+$\mathcal O(p+\log_p n)$ 预处理/查询。
+
+用 Lucas 定理计算小质数模下的大参数组合数；要求 `Z::askMod()==p`，复杂度按 $p$ 和 $\log_p n$ 计。
+
+```cpp
+template <class Z> struct LucasPrime {
+    int p = 0;
+    vector<Z> f, g;
+
+    LucasPrime() = default;
+
+    explicit LucasPrime(int p) {
+        init(p);
+    }
+
+    void init(int x) {
+        assert(x >= 2 && Z::askMod() == x);
+        p = x;
+        f.assign(p, Z(1));
+        g.assign(p, Z(1));
+        for (int i = 1; i < p; ++i) f[i] = f[i - 1] * i;
+        g[p - 1] = f[p - 1].inv();
+        for (int i = p - 1; i; --i) g[i - 1] = g[i] * i;
+    }
+
+    Z smallC(int n, int k) const {
+        if (k < 0 || k > n) return Z(0);
+        return f[n] * g[k] * g[n - k];
+    }
+
+    Z C(int n, int k) const {
+        assert(p);
+        if (k < 0 || k > n) return Z(0);
+        Z r = 1;
+        while (n || k) {
+            int x = n % p, y = k % p;
+            if (y > x) return Z(0);
+            r *= smallC(x, y);
+            n /= p;
+            k /= p;
+        }
+        return r;
+    }
+};
+```
+
+### 03C - 康托展开（暴力，小 $n$）
+精确计算排列的康托排名与反排名，在模板内生成阶乘表。
+$\mathcal O(n^2)$，适合小 $n$。
+
+求 $1\dots n$ 排列的精确康托展开排名（从 1 开始），并支持反排名。  
+`int` 仅适合 $n\le20$ 的精确排名；大规模或模意义排名使用 `03D`。
+
+```cpp
+struct Cantor {
+    static void check(const vector<int>& p) {
+        int n = p.size();
+        vector<char> vis(n + 1, false);
+        for (int val : p) {
+            assert(1 <= val && val <= n && !vis[val]);
+            vis[val] = true;
+        }
+    }
+
+    static int askRank(const vector<int>& p) {
+        int n = p.size();
+        assert(n <= 20);
+        check(p);
+        vector<int> fac(n + 1, 1);
+        for (int i = 1; i <= n; ++i) fac[i] = fac[i - 1] * i;
+        int rk = 1;
+        for (int i = 0; i < n; ++i) {
+            int cnt = 0;
+            for (int j = i + 1; j < n; ++j) cnt += p[j] < p[i];
+            rk += cnt * fac[n - 1 - i];
+        }
+        return rk;
+    }
+
+    static vector<int> askPerm(int n, int rk) {
+        assert(0 <= n && n <= 20);
+        vector<int> fac(n + 1, 1);
+        for (int i = 1; i <= n; ++i) fac[i] = fac[i - 1] * i;
+        assert(1 <= rk && rk <= fac[n]);
+        --rk;
+        vector<int> vis(n), p;
+        iota(vis.begin(), vis.end(), 1);
+        for (int rem = n; rem >= 1; --rem) {
+            int id = rk / fac[rem - 1];
+            rk %= fac[rem - 1];
+            p.push_back(vis[id]);
+            vis.erase(vis.begin() + id);
+        }
+        return p;
+    }
+};
+```
+
+### 03D - 康托展开（树状数组，大 $n$）
+在模意义下快速计算大排列的康托排名，在模板内维护树状数组。
+$\mathcal O(n\log n)$。
+
+求 $1\dots n$ 排列的康托展开排名模 mod。  
+结果按 `mod` 保留；需要精确排名或反排名且 $n\le20$ 时使用 `03C`。
+
+```cpp
+using i128 = __int128_t;
+
+struct Cantor {
+    static int mul(int a, int b, int mod) {
+        assert(mod > 0);
+        a %= mod;
+        b %= mod;
+#ifdef __SIZEOF_INT128__
+        return i128(a) * b % mod;
+#else
+        int res = 0;
+        while (b > 0) {
+            if (b & 1) res = res >= mod - a ? res - (mod - a) : res + a;
+            a = a >= mod - a ? a - (mod - a) : a + a;
+            b >>= 1;
+        }
+        return res;
+#endif
+    }
+
+    static void check(const vector<int>& p) {
+        int n = p.size();
+        vector<char> vis(n + 1, false);
+        for (int val : p) {
+            assert(1 <= val && val <= n && !vis[val]);
+            vis[val] = true;
+        }
+    }
+
+    static int askMod(const vector<int>& p, int mod) {
+        assert(mod > 0);
+        int n = p.size();
+        check(p);
+        struct BIT {
+            int n;
+            vector<int> t;
+            explicit BIT(int n) : n(n), t(n + 1, 0) {}
+            void modify(int x, int v) { for (; x <= n; x += x & -x) t[x] += v; }
+            int ask(int x) const { int r = 0; for (; x > 0; x -= x & -x) r += t[x]; return r; }
+        } bit(n);
+
+        vector<int> fac(n + 1, 1 % mod);
+        for (int i = 1; i <= n; ++i) fac[i] = mul(fac[i - 1], i, mod);
+        for (int x = 1; x <= n; ++x) bit.modify(x, 1);
+
+        int rk = 1 % mod;
+        for (int i = 0; i < n; ++i) {
+            int cnt = bit.ask(p[i] - 1);
+            int get = mul(cnt, fac[n - 1 - i], mod);
+            rk = rk >= mod - get ? rk - (mod - get) : rk + get;
+            bit.modify(p[i], -1);
+        }
+        return rk;
+    }
+
+    // 质数模时优先使用本重载，Z 自动完成加乘取模。
+    template <class Z> static Z askRank(const vector<int>& p) {
+        int n = p.size();
+        check(p);
+        struct BIT {
+            int n;
+            vector<int> t;
+            explicit BIT(int n) : n(n), t(n + 1) {}
+            void modify(int x, int v) {
+                for (; x <= n; x += x & -x) t[x] += v;
+            }
+            int ask(int x) const {
+                int r = 0;
+                for (; x; x -= x & -x) r += t[x];
+                return r;
+            }
+        } b(n);
+        vector<Z> f(n + 1, Z(1));
+        for (int i = 1; i <= n; ++i) f[i] = f[i - 1] * i;
+        for (int x = 1; x <= n; ++x) b.modify(x, 1);
+        Z r = 1;
+        for (int i = 0; i < n; ++i) {
+            r += Z(b.ask(p[i] - 1)) * f[n - 1 - i];
+            b.modify(p[i], -1);
+        }
+        return r;
+    }
+};
+```
+
+### 03E - 卡特兰数
+预处理 Catalan 数列，适用于质数模。
+$\mathcal O(n)$ 时间、$\mathcal O(n)$ 空间。
+
+预处理 `Catalan(0..n)`；`Z` 的模数须为质数且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z> vector<Z> catalan(int n) {
+    assert(n >= 0 && n < Z::askMod());
+    vector<Z> a(n + 1);
+    a[0] = 1;
+    for (int i = 1; i <= n; ++i) a[i] = a[i - 1] * Z(4 * i - 2) / Z(i + 1);
+    return a;
+}
+```
+
+### 03F - 斯特林数（第一、二类）
+预处理无符号第一类、第二类 Stirling 数。
+二维递推 $\mathcal O(n^2)$ 时间、$\mathcal O(n^2)$ 空间。
+
+```cpp
+template <class Z> struct Stirling {
+    int n = 0;
+    vector<vector<Z>> a, b;
+
+    Stirling() = default;
+
+    explicit Stirling(int m) {
+        init(m);
+    }
+
+    void init(int m) {
+        assert(m >= 0);
+        n = m;
+        a.assign(n + 1, vector<Z>(n + 1));
+        b.assign(n + 1, vector<Z>(n + 1));
+        a[0][0] = b[0][0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= i; ++j) {
+                a[i][j] = a[i - 1][j - 1] + Z(i - 1) * a[i - 1][j];
+                b[i][j] = b[i - 1][j - 1] + Z(j) * b[i - 1][j];
+            }
+        }
+    }
+
+    Z stir1(int x, int k) const {
+        assert(0 <= x && x <= n && 0 <= k && k <= x);
+        return (x - k) & 1 ? -a[x][k] : a[x][k];
+    }
+};
+```
+
+### 03FA - 斯特林数（NTT快速求法）
+用卷积快速求固定阶的两类斯特林数整行，要求 NTT 友好质数模。
+依赖多项式。
+第一类约 $\mathcal O(n\log^2n)$，第二类约 $\mathcal O(n\log n)$。
+
+`StirFast<Z>::ask1(n)` 返回无符号第一类，传入 `true` 返回有符号第一类；`ask2(n)` 返回第二类，结果下标 $k$ 为 $0\dots n$。
+
+```cpp
+template <class Z, int G = 3> struct StirFast {
+    using P = Poly<Z, G>;
+
+    static vector<Z> mul(vector<Z> a, vector<Z> b) {
+        if (a.empty() || b.empty()) return {};
+        int n = a.size(), m = b.size();
+        if (min(n, m) <= 32) {
+            vector<Z> c(n + m - 1);
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < m; ++j) c[i + j] += a[i] * b[j];
+            return c;
+        }
+        return P::mul(move(a), move(b));
+    }
+
+    static vector<Z> prod(int l, int r) {
+        if (l >= r) return {Z(1)};
+        if (r - l == 1) return {Z(l), Z(1)};
+        int m = (l + r) >> 1;
+        return mul(prod(l, m), prod(m, r));
+    }
+
+    static vector<Z> ask1(int n, bool sg = false) {
+        assert(n >= 0);
+        vector<Z> a = prod(0, n);
+        a.resize(n + 1);
+        if (sg)
+            for (int k = 0; k <= n; ++k)
+                if ((n - k) & 1) a[k] = -a[k];
+        return a;
+    }
+
+    static Z ask1(int n, int k, bool sg = false) {
+        assert(0 <= k && k <= n);
+        return ask1(n, sg)[k];
+    }
+
+    static vector<Z> ask2(int n) {
+        assert(0 <= n && n < Z::askMod());
+        vector<Z> f(n + 1), g(n + 1), fac(n + 1), iv(n + 1);
+        fac[0] = 1;
+        for (int i = 1; i <= n; ++i) fac[i] = fac[i - 1] * Z(i);
+        iv[n] = fac[n].inv();
+        for (int i = n; i; --i) iv[i - 1] = iv[i] * Z(i);
+        for (int i = 0; i <= n; ++i) {
+            f[i] = Z(i).pow(n) * iv[i];
+            g[i] = (i & 1) ? -iv[i] : iv[i];
+        }
+        vector<Z> a = mul(move(f), move(g));
+        a.resize(n + 1);
+        return a;
+    }
+};
+```
+
+### 03G - 错排数与贝尔数
+预处理错排数与 Bell 数，适用于可加乘的系数类型。
+$\mathcal O(n^2)$ 时间、$\mathcal O(n)$ 空间。
+
+预处理错排数 $D(0\dots n)$ 与 Bell 数 $B(0\dots n)$。仅要求 $Z$ 支持加减乘。
+
+```cpp
+template <class Z> vector<Z> derange(int n) {
+    assert(n >= 0);
+    vector<Z> a(n + 1);
+    a[0] = 1;
+    for (int i = 2; i <= n; ++i) a[i] = Z(i - 1) * (a[i - 1] + a[i - 2]);
+    return a;
+}
+
+template <class Z> vector<Z> bell(int n) {
+    assert(n >= 0);
+    vector<vector<Z>> a(n + 1);
+    vector<Z> b(n + 1);
+    a[0] = {Z(1)};
+    b[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+        a[i].assign(i + 1, Z(0));
+        a[i][0] = a[i - 1][i - 1];
+        for (int j = 1; j <= i; ++j) a[i][j] = a[i][j - 1] + a[i - 1][j - 1];
+        b[i] = a[i][0];
+    }
+    return b;
+}
+```
+
+### 03GA - 贝尔数（NTT快速求法）
+用指数型生成函数快速求 Bell 数，要求 NTT 友好质数模。
+依赖多项式。
+$\mathcal O(n\log n)$。
+
+使用指数型生成函数快速求 Bell 数；`n` 较大时优于 `03G` 的平方级递推，要求 NTT 友好质数模且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z, int G = 3> vector<Z> bellFast(int n) {
+    assert(0 <= n && n < Z::askMod());
+    vector<Z> iv(n + 1), f(n + 1), fac(n + 1);
+    fac[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+        fac[i] = fac[i - 1] * Z(i);
+    }
+    iv[n] = fac[n].inv();
+    for (int i = n; i; --i) iv[i - 1] = iv[i] * Z(i);
+    f[0] = 0;
+    for (int i = 1; i <= n; ++i) f[i] = iv[i];
+    vector<Z> a = Poly<Z, G>::exp(f, n + 1);
+    for (int i = 0; i <= n; ++i) a[i] *= fac[i];
+    return a;
+}
+```
+
+### 03H - 拉格朗日插值（任意横坐标）
+由互异横坐标点求任意位置的多项式值，适用于质数模域。
+预处理/单次求值 $\mathcal O(n)$。
+
+给定互异横坐标点 $(x_i,y_i)$，在 $p$ 处求值；`Z` 为质数模域且横坐标两两不同。
+
+```cpp
+template <class Z> Z lagr(const vector<Z>& x, const vector<Z>& y, Z p) {
+    int n = x.size();
+    assert(n && y.size() == n);
+    for (int i = 0; i < n; ++i) {
+        if (p == x[i]) return y[i];
+        for (int j = 0; j < i; ++j) assert(x[i] != x[j]);
+    }
+    Z r = 0;
+    for (int i = 0; i < n; ++i) {
+        Z a = 1, b = 1;
+        for (int j = 0; j < n; ++j) {
+            if (i == j) continue;
+            a *= p - x[j];
+            b *= x[i] - x[j];
+        }
+        r += y[i] * a / b;
+    }
+    return r;
+}
+```
+
+### 03I - 拉格朗日插值（连续横坐标）
+横坐标连续时在线性时间求多项式值，适用于质数模且 $n<\textrm{mod}$。
+单次 $\mathcal O(n)$，空间 $\mathcal O(n)$。
+
+已知连续点值 $f[0\dots n-1]$，在任意整数 $x$ 处求次数小于 $n$ 的多项式值；要求质数模且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z> Z lagr(const vector<Z>& a, int x) {
+    int n = a.size();
+    assert(n && n < Z::askMod());
+    if (0 <= x && x < n) return a[x];
+    Z p = x;
+    vector<Z> l(n + 1, Z(1)), r(n + 1, Z(1)), f(n, Z(1)), g(n, Z(1));
+    for (int i = 0; i < n; ++i) l[i + 1] = l[i] * (p - Z(i));
+    for (int i = n - 1; i >= 0; --i) r[i] = r[i + 1] * (p - Z(i));
+    for (int i = 1; i < n; ++i) f[i] = f[i - 1] * i;
+    g[n - 1] = f[n - 1].inv();
+    for (int i = n - 1; i; --i) g[i - 1] = g[i] * i;
+    Z ans = 0;
+    for (int i = 0; i < n; ++i) {
+        Z t = a[i] * l[i] * r[i + 1] * g[i] * g[n - 1 - i];
+        if ((n - 1 - i) & 1) t = -t;
+        ans += t;
+    }
+    return ans;
+}
+```
+
+### 03J - 牛顿插值（差分级数）
+维护整数连续横坐标上的 Newton 前向差分，适用于质数模且 $n<\textrm{mod}$。
+构造 $\mathcal O(n^2)$，单次查询 $\mathcal O(n)$。
+
+横坐标为 $0\dots n-1$ 时维护 Newton 前向差分；`Z` 为质数模且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z> struct Newton {
+    vector<Z> d;
+
+    Newton() = default;
+
+    explicit Newton(vector<Z> a) {
+        init(move(a));
+    }
+
+    void init(vector<Z> a) {
+        assert(a.size() < Z::askMod());
+        d.clear();
+        while (!a.empty()) {
+            d.push_back(a[0]);
+            for (int i = 0; i + 1 < a.size(); ++i) a[i] = a[i + 1] - a[i];
+            a.pop_back();
+        }
+    }
+
+    Z ask(Z x) const {
+        Z r = 0, c = 1;
+        for (int i = 0; i < d.size(); ++i) {
+            r += d[i] * c;
+            c *= (x - Z(i)) / Z(i + 1);
+        }
+        return r;
+    }
+};
+```
+
+### 03K - 整数分拆（五边形数）
+用 Euler 五边形数定理预处理整数分拆，只要求系数类型支持加减。
+$\mathcal O(n\sqrt n)$ 时间、$\mathcal O(n)$ 空间。
+
+用 Euler 五边形数定理预处理整数分拆 $p(0\dots n)$；系数类型只需支持加减。
+
+```cpp
+template <class Z> vector<Z> part(int n) {
+    assert(n >= 0);
+    vector<Z> a(n + 1);
+    a[0] = 1;
+    for (int i = 1; i <= n; ++i) {
+        Z s = 0;
+        for (int k = 1;; ++k) {
+            int x = k * (3 * k - 1) / 2;
+            if (x > i) break;
+            Z t = k & 1 ? Z(1) : Z(-1);
+            s += t * a[i - x];
+            int y = k * (3 * k + 1) / 2;
+            if (y <= i) s += t * a[i - y];
+        }
+        a[i] = s;
+    }
+    return a;
+}
+```
+
+### 03KA - 整数分拆（NTT快速求法）
+用形式幂级数快速求整数分拆数，要求 NTT 友好质数模且 $n<\textrm{mod}$。
+依赖多项式。
+$\mathcal O(n\log n)$。
+
+用形式幂级数 `exp` 快速求整数分拆；`n` 较大时优于 `03K`，要求 NTT 友好质数模且 $n<\textrm{mod}$。
+
+```cpp
+template <class Z, int G = 3> vector<Z> partFast(int n) {
+    assert(0 <= n && n < Z::askMod());
+    vector<Z> f(n + 1);
+    for (int d = 1; d <= n; ++d)
+        for (int k = d; k <= n; k += d) f[k] += Z(d);
+    for (int k = 1; k <= n; ++k) f[k] /= Z(k);
+    return Poly<Z, G>::exp(f, n + 1);
+}
+```
+
+### 03L - Berlekamp-Massey（最短线性递推）
+从序列恢复最短线性递推，要求系数位于域上。
+朴素实现最坏 $\mathcal O(nk)$，$k$ 为递推阶数。
+
+求最短递推 $a[t] = \sum c[i] a[t-1-i]$。$Z$ 为域；返回的系数可直接交给 `03LA`。
+
+```cpp
+template <class Z> vector<Z> BM(const vector<Z>& a) {
+    vector<Z> c{Z(1)}, b{Z(1)};
+    int l = 0, m = 1;
+    Z d = 1;
+    for (int i = 0; i < a.size(); ++i) {
+        Z x = a[i];
+        for (int j = 1; j <= l; ++j) x += c[j] * a[i - j];
+        if (x == Z(0)) {
+            ++m;
+            continue;
+        }
+        vector<Z> t = c;
+        Z q = x / d;
+        if (c.size() < b.size() + m) c.resize(b.size() + m);
+        for (int j = 0; j < b.size(); ++j) c[j + m] -= q * b[j];
+        if (l * 2 <= i) {
+            l = i + 1 - l;
+            b = move(t);
+            d = x;
+            m = 1;
+        } else {
+            ++m;
+        }
+    }
+    vector<Z> r(l);
+    for (int i = 0; i < l; ++i) r[i] = -c[i + 1];
+    return r;
+}
+```
+
+### 03LA - 线性递推第 $n$ 项（Kitamasa）
+已知递推系数和初值时求第 $n$ 项，给定递推系数和初值即可。
+$\mathcal O(k^2\log n)$。
+
+已知递推系数 `c` 和前 $k$ 项 `a`，用二进制降阶求第 $n$ 项。
+
+```cpp
+namespace LinearRec {
+template <class Z> vector<Z> combine(const vector<Z>& a, const vector<Z>& b, const vector<Z>& c) {
+    int k = c.size();
+    vector<Z> t(k * 2 - 1);
+    for (int i = 0; i < k; ++i)
+        for (int j = 0; j < k; ++j) t[i + j] += a[i] * b[j];
+    for (int i = k * 2 - 2; i >= k; --i)
+        for (int j = 0; j < k; ++j) t[i - 1 - j] += t[i] * c[j];
+    t.resize(k);
+    return t;
+}
+
+template <class Z> Z ask(const vector<Z>& a, const vector<Z>& c, int n) {
+    int k = c.size();
+    assert(k && a.size() == k && n >= 0);
+    if (n < k) return a[n];
+    vector<Z> r(k), x(k);
+    r[0] = 1;
+    if (k == 1) x[0] = c[0];
+    else x[1] = 1;
+    while (n) {
+        if (n & 1) r = combine(r, x, c);
+        x = combine(x, x, c);
+        n >>= 1;
+    }
+    Z ans = 0;
+    for (int i = 0; i < k; ++i) ans += r[i] * a[i];
+    return ans;
+}
+}  // namespace LinearRec
+```
+
+### 03M - Burnside 引理（群作用计数）
+按群作用的不动点平均数计数轨道，要求系数可逆并提供各变换的不动点数。
+$\mathcal O(|G|)$ 次不动点计算。
+
+`f(i)` 返回第 $i$ 个变换的不动点数；要求群大小在 `Z` 中可逆。
+
+```cpp
+namespace Burnside {
+template <class Z, class F> Z burn(int n, F f) {
+    assert(n > 0);
+    Z s = 0;
+    for (int i = 0; i < n; ++i) s += f(i);
+    return s / Z(n);
+}
+}  // namespace Burnside
+```
+
+### 03N - 快速阶乘（NTT）
+在大质数模下快速求 $n!$，要求 NTT 友好质数模。
+依赖多项式。
+约 $\mathcal O(\sqrt n\log^2n)$ 时间、$\mathcal O(\sqrt n)$ 空间。
+
+使用 `FastFac<Z>::ask(n)`；`n` 超过模数时直接返回 $0$，否则按分块多点求值。
+
+```cpp
+template <class Z, int G = 3> struct FastFac {
+    static vector<Z> prod(int n) {
+        vector<vector<Z>> a;
+        a.reserve(n);
+        for (int i = 1; i <= n; ++i) a.push_back({Z(i), Z(1)});
+        while (a.size() > 1) {
+            vector<vector<Z>> b;
+            b.reserve((a.size() + 1) >> 1);
+            for (int i = 0; i < a.size(); i += 2) {
+                if (i + 1 == a.size()) b.push_back(move(a[i]));
+                else b.push_back(Poly<Z, G>::mul(a[i], a[i + 1]));
+            }
+            a = move(b);
+        }
+        return a.empty() ? vector<Z>{Z(1)} : move(a[0]);
+    }
+
+    static Z ask(int n) {
+        assert(n >= 0);
+        if (!n) return Z(1);
+        if (n >= Z::askMod()) return Z(0);
+        int b = sqrtl(n) + 1;
+        int q = n / b, r = n % b;
+        vector<Z> f = prod(b), x(q);
+        for (int i = 0; i < q; ++i) x[i] = Z(i * b);
+        Z ans = 1;
+        for (Z v : Poly<Z, G>::eval(f, x)) ans *= v;
+        for (int i = 1; i <= r; ++i) ans *= Z(q * b + i);
+        return ans;
+    }
+};
+```
+
+## 04 - 容斥原理
+
+### 04A - 容斥（bitmask，小 $m$）
+枚举少量除数的并集计数，基于最小公倍数与位掩码。
+$\mathcal O(2^m m)$，适合 $m\le22$。
+
+`m` 为去重后的除数个数且 $m\le22$；与 `04B` 是同一问题的两种实现，按规模择一。
+
+```cpp
+using i128 = __int128_t;
+
+namespace IE {
+inline vector<int> norm(vector<int> d) {
+    for (int val : d) assert(val > 0);
+    sort(d.begin(), d.end());
+    d.erase(unique(d.begin(), d.end()), d.end());
+    vector<int> res;
+    for (int val : d) {
+        bool bad = false;
+        for (int kp : res) {
+            if (val % kp == 0) {
+                bad = true;
+                break;
+            }
+        }
+        if (!bad) res.push_back(val);
+    }
+    return res;
+}
+
+inline bool lcm(int a, int b, int lim, int& res) {
+    int x = a / gcd(a, b);
+    if (x > lim / b) return false;
+    res = x * b;
+    return true;
+}
+
+inline int solve(int n, vector<int> d) {
+    assert(n >= 0);
+    d = norm(move(d));
+    int m = d.size();
+    assert(m <= 22);
+    i128 ans = 0;
+    for (int msk = 1; msk < (1ULL << m); ++msk) {
+        int cur = 1;
+        bool ok = true;
+        for (int i = 0; i < m; ++i) {
+            if ((msk >> i & 1) && !lcm(cur, d[i], n, cur)) {
+                ok = false;
+                break;
+            }
+        }
+        if (!ok) continue;
+        if (__builtin_popcountll(msk) & 1) ans += n / cur;
+        else ans -= n / cur;
+    }
+    assert(ans >= numeric_limits<int>::min() && ans <= numeric_limits<int>::max());
+    return ans;
+}
+}  // namespace IE
+```
+
+### 04B - 容斥（DFS 剪枝）
+在除数较多且 lcm 易超界时做递归容斥，利用整除关系与最小公倍数剪枝。
+最坏 $\mathcal O(2^m)$，通常因剪枝更快。
+
+同样统计除数并集，递归时在 `lcm > n` 处剪枝；当除数较多或 lcm 很快超界时使用。
+
+```cpp
+using i128 = __int128_t;
+
+namespace IE {
+inline vector<int> norm(vector<int> d) {
+    for (int val : d) assert(val > 0);
+    sort(d.begin(), d.end());
+    d.erase(unique(d.begin(), d.end()), d.end());
+    vector<int> res;
+    for (int val : d) {
+        bool bad = false;
+        for (int kp : res) {
+            if (val % kp == 0) {
+                bad = true;
+                break;
+            }
+        }
+        if (!bad) res.push_back(val);
+    }
+    return res;
+}
+
+inline bool lcm(int a, int b, int lim, int& res) {
+    int x = a / gcd(a, b);
+    if (x > lim / b) return false;
+    res = x * b;
+    return true;
+}
+
+inline int solve(int n, vector<int> d) {
+    assert(n >= 0);
+    d = norm(move(d));
+    i128 ans = 0;
+    function<void(int, int, int)> dfs = [&](int st, int cur, int sgn) {
+        for (int i = st; i < d.size(); ++i) {
+            int nxt;
+            if (!lcm(cur, d[i], n, nxt)) continue;
+            ans += sgn * i128(n / nxt);
+            dfs(i + 1, nxt, -sgn);
+        }
+    };
+    dfs(0, 1, 1);
+    assert(ans >= numeric_limits<int>::min() && ans <= numeric_limits<int>::max());
+    return ans;
+}
+}  // namespace IE
+```
+
+## 05 - 矩阵、线性代数与计数
+
+### 05A - 矩阵（Matrix, with Int）
+提供矩阵加减乘、幂和线性递推加速，要求数值类型支持加法和乘法。
+乘法 $\mathcal O(nmk)$，平方矩阵幂为 $\mathcal O(n^3\log e)$。
+
+```cpp
+template <class T> struct Matrix {
+    int n, m;
+    vector<vector<T>> a;
+
+    Matrix(int n = 0, int m = 0, T val = T()) : n(n), m(m), a(n, vector<T>(m, val)) {}
+
+    static Matrix unit(int n) {
+        Matrix I(n, n);
+        for (int i = 0; i < n; i++) I.a[i][i] = T(1);
+        return I;
+    }
+
+    vector<T> &operator[](int i) {
+        return a[i];
+    }
+    const vector<T> &operator[](int i) const {
+        return a[i];
+    }
+
+    Matrix operator+(const Matrix &o) const {
+        assert(n == o.n && m == o.m);
+        Matrix res(n, m);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++) res[i][j] = a[i][j] + o[i][j];
+        return res;
+    }
+
+    Matrix operator-(const Matrix &o) const {
+        assert(n == o.n && m == o.m);
+        Matrix res(n, m);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++) res[i][j] = a[i][j] - o[i][j];
+        return res;
+    }
+
+    Matrix operator*(const Matrix &o) const {
+        assert(m == o.n);
+        Matrix res(n, o.m, T(0));
+        for (int i = 0; i < n; i++)
+            for (int k = 0; k < m; k++)
+                for (int j = 0; j < o.m; j++) res[i][j] = res[i][j] + a[i][k] * o[k][j];
+        return res;
+    }
+
+    Matrix operator*(const T &k) const {
+        Matrix res(n, m);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++) res[i][j] = a[i][j] * k;
+        return res;
+    }
+
+    Matrix trans() const {
+        Matrix res(m, n);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++) res[j][i] = a[i][j];
+        return res;
+    }
+
+    Matrix ksm(int exp) const {
+        assert(n == m);
+        assert(exp >= 0);
+        Matrix bas = *this;
+        Matrix res = unit(n);
+        while (exp > 0) {
+            if (exp & 1) res = res * bas;
+            bas = bas * bas;
+            exp >>= 1;
+        }
+        return res;
+    }
+};
+
+template <class T> T det(int n, Matrix<T> &mat) {
+    T det = T(1);
+    int sgn = 1;
+
+    for (int i = 0; i < n; i++) {
+        int piv = i;
+        while (piv < n && mat[piv][i] == T()) piv++;
+        if (piv == n) return T();
+
+        if (piv != i) {
+            swap(mat[i], mat[piv]);
+            sgn = -sgn;
+        }
+
+        det *= mat[i][i];
+        for (int j = i + 1; j < n; j++) {
+            if (!(mat[j][i] == T())) {
+                T k = mat[j][i] / mat[i][i];
+                for (int k = i; k < n; k++) {
+                    mat[j][k] -= k * mat[i][k];
+                }
+            }
+        }
+    }
+
+    if (sgn == -1) {
+        det = T() - det;
+    }
+    return det;
+}
+```
+
+### 05B - Min-Plus矩阵（MinPlusMatrix, with Int）
+用 min-plus 乘法表示带权路径和状态转移，要求距离类型可比较且支持加法。
+单次乘法 $\mathcal O(n^3)$，幂为 $\mathcal O(n^3\log e)$。
+
+默认沿用公共 `int` 宏；仅在极限规模压缩下标时局部改用 `i32`。
+
+```cpp
+template <int N, class T = int> struct Matrix {
+    static constexpr T INF = numeric_limits<T>::max() / 4;
+    array<array<T, N>, N> a;
+
+    Matrix(T v = INF) {
+        for (int i = 0; i < N; ++i) a[i].fill(v);
+    }
+
+    static Matrix unit() {
+        Matrix res;
+        for (int i = 0; i < N; ++i) res[i][i] = 0;
+        return res;
+    }
+
+    array<T, N> &operator[](int i) {
+        return a[i];
+    }
+    const array<T, N> &operator[](int i) const {
+        return a[i];
+    }
+
+    Matrix operator+(const Matrix &o) const {
+        Matrix res;
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j) res[i][j] = min(a[i][j], o[i][j]);
+        return res;
+    }
+
+    Matrix operator*(const Matrix &o) const {
+        Matrix res;
+        for (int i = 0; i < N; ++i) {
+            for (int k = 0; k < N; ++k) {
+                if (a[i][k] >= INF) continue;
+                for (int j = 0; j < N; ++j) {
+                    if (o[k][j] >= INF) continue;
+                    res[i][j] = min(res[i][j], a[i][k] + o[k][j]);
+                }
+            }
+        }
+        return res;
+    }
+
+    Matrix &operator+=(const Matrix &o) {
+        return *this = *this + o;
+    }
+    Matrix &operator*=(const Matrix &o) {
+        return *this = *this * o;
+    }
+
+    Matrix ksm(int b) const {
+        assert(b >= 0);
+        Matrix a = *this, res = unit();
+        while (b) {
+            if (b & 1) res *= a;
+            a *= a;
+            b >>= 1;
+        }
+        return res;
+    }
+};
+```
+
+### 05C - 高斯消元（一般线性方程组）
+求一般实系数线性方程组并区分解的类型，使用浮点除法和 EPS。
+$\mathcal O(m^2\,\textrm{rows})$。
+
+求一般实系数 $m$ 元线性方程组，区分唯一解、无穷多解、无解。  
+浮点题请按数据范围调整 `eps`；精确模意义方程不能直接套用。  
+与 `05D` 都用于线性方程组，但 `05D` 只适合对称、无零主元的特殊矩阵。
+
+```cpp
+using ld = long double;
+
+enum class GaussStat { Unique, Infinite, Inconsistent };
+
+struct GaussRes {
+    GaussStat st;
+    vector<ld> sol;  // Infinite 时给出一个自由元均为 0 的特解。
+    vector<int> pc;
+};
+
+inline GaussRes gauss(vector<vector<ld>> a, ld eps = 1e-12L) {
+    int n = a.size();
+    if (n == 0) return {GaussStat::Unique, {}, {}};
+    int m = a[0].size() - 1;
+    assert(m >= 0);
+    for (const auto& row : a) assert(row.size() == m + 1);
+
+    vector<int> pc;
+    int pr = 0;
+    for (int c = 0; c < m && pr < n; ++c) {
+        int vis = pr;
+        for (int row = pr + 1; row < n; ++row) {
+            if (fabsl(a[row][c]) > fabsl(a[vis][c])) vis = row;
+        }
+        if (fabsl(a[vis][c]) <= eps) continue;
+        swap(a[vis], a[pr]);
+        ld iv = 1 / a[pr][c];
+        for (int j = c; j <= m; ++j) a[pr][j] *= iv;
+        for (int row = 0; row < n; ++row) {
+            if (row == pr || fabsl(a[row][c]) <= eps) continue;
+            ld coe = a[row][c];
+            for (int j = c; j <= m; ++j) a[row][j] -= coe * a[pr][j];
+        }
+        pc.push_back(c);
+        ++pr;
+    }
+
+    for (int row = pr; row < n; ++row) {
+        if (fabsl(a[row][m]) > eps) return {GaussStat::Inconsistent, {}, pc};
+    }
+    vector<ld> sol(m, 0);
+    for (int row = 0; row < pr; ++row) sol[pc[row]] = a[row][m];
+    return {pr == m ? GaussStat::Unique : GaussStat::Infinite, sol, pc};
+}
+```
+
+### 05D - 对称 LDLT 分解（线性方程组）
+对称矩阵的 $\textrm{LDL}^{\mathsf T}$ 分解与方程求解，要求主元非零且无需换行。
+$\mathcal O(n^3)$ 时间、$\mathcal O(n^2)$ 空间。
+
+不做主元交换，要求各顺序主子式不出现零枢轴。
+
+```cpp
+using ld = long double;
+
+inline optional<vector<ld>> solve(
+    const vector<vector<ld>>& mat, const vector<ld>& rhs, ld eps = 1e-12L) {
+    int n = mat.size();
+    if (rhs.size() != n) return nullopt;
+    for (const auto& row : mat) if (row.size() != n) return nullopt;
+
+    vector<vector<ld>> lo(n, vector<ld>(n, 0));
+    vector<ld> dia(n);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < i; ++j) {
+            ld val = mat[i][j];
+            for (int k = 0; k < j; ++k) val -= lo[i][k] * dia[k] * lo[j][k];
+            if (fabsl(dia[j]) <= eps) return nullopt;
+            lo[i][j] = val / dia[j];
+        }
+        ld val = mat[i][i];
+        for (int k = 0; k < i; ++k) val -= lo[i][k] * lo[i][k] * dia[k];
+        if (fabsl(val) <= eps) return nullopt;
+        dia[i] = val;
+        lo[i][i] = 1;
+    }
+
+    vector<ld> y(n), z(n), ans(n);
+    for (int i = 0; i < n; ++i) {
+        y[i] = rhs[i];
+        for (int j = 0; j < i; ++j) y[i] -= lo[i][j] * y[j];
+        z[i] = y[i] / dia[i];
+    }
+    for (int i = n - 1; i >= 0; --i) {
+        ans[i] = z[i];
+        for (int j = i + 1; j < n; ++j) ans[i] -= lo[j][i] * ans[j];
+    }
+    return ans;
+}
+```
+
+### 05E - 高斯消元（模质数）
+在质数模域中求线性方程组，要求主元可逆。
+$\mathcal O(m^2\,\textrm{rows})$。
+
+返回唯一解、无穷多解或无解三种状态。
+
+```cpp
+enum class GaussStat { Unique, Infinite, Inconsistent };
+
+template <class Z> struct GaussRes {
+    GaussStat st;
+    vector<Z> x;
+    vector<int> p;
+};
+
+template <class Z> GaussRes<Z> gauss(vector<vector<Z>> a) {
+    int n = a.size();
+    if (!n) return {GaussStat::Unique, {}, {}};
+    int m = a[0].size() - 1;
+    assert(m >= 0);
+    for (const auto& v : a) assert(v.size() == m + 1);
+
+    vector<int> p;
+    int r = 0;
+    for (int c = 0; c < m && r < n; ++c) {
+        int x = r;
+        while (x < n && a[x][c] == Z(0)) ++x;
+        if (x == n) continue;
+        swap(a[x], a[r]);
+        Z iv = a[r][c].inv();
+        for (int j = c; j <= m; ++j) a[r][j] *= iv;
+        for (int i = 0; i < n; ++i) {
+            if (i == r || a[i][c] == Z(0)) continue;
+            Z z = a[i][c];
+            for (int j = c; j <= m; ++j) a[i][j] -= z * a[r][j];
+        }
+        p.push_back(c);
+        ++r;
+    }
+    for (int i = r; i < n; ++i)
+        if (a[i][m] != Z(0)) return {GaussStat::Inconsistent, {}, p};
+    vector<Z> x(m);
+    for (int i = 0; i < r; ++i) x[p[i]] = a[i][m];
+    return {r == m ? GaussStat::Unique : GaussStat::Infinite, x, p};
+}
+```
+
+### 05F - 行列式（模质数）
+计算域上方阵行列式，要求主元可逆。
+$\mathcal O(n^3)$ 时间、$\mathcal O(n^2)$ 空间。
+
+`Z` 为模数类型时要求其模数为质数。
+
+```cpp
+template <class Z> Z det(vector<vector<Z>> a) {
+    int n = a.size();
+    for (const auto& v : a) assert(v.size() == n);
+    Z r = 1;
+    for (int c = 0; c < n; ++c) {
+        int p = c;
+        while (p < n && a[p][c] == Z(0)) ++p;
+        if (p == n) return Z(0);
+        if (p != c) {
+            swap(a[p], a[c]);
+            r = -r;
+        }
+        Z x = a[c][c];
+        r *= x;
+        Z iv = x.inv();
+        for (int i = c + 1; i < n; ++i) {
+            if (a[i][c] == Z(0)) continue;
+            Z q = a[i][c] * iv;
+            for (int j = c; j < n; ++j) a[i][j] -= q * a[c][j];
+        }
+    }
+    return r;
+}
+```
+
+### 05G - 线性规划（单纯形）
+求连续变量线性规划的最优值与方案，使用浮点运算和 EPS。
+单纯形最坏为指数级（无统一多项式 $\mathcal O$ 上界），小规模通常可用。
+
+求 $c\cdot x$ 在 $Ax\le b,x\ge0$ 下的浮点最优值；返回最优、无界或无解。单纯形最坏指数，仅适合中小规模，不能处理整数规划。
+
+```cpp
+using ld = long double;
+
+enum class LPStatus { Optimal, Infeasible, Unbounded };
+
+struct LPRes {
+    LPStatus st;
+    ld ans = 0;
+    vector<ld> sol;
+};
+
+struct Simplex {
+    static constexpr ld EPS = 1e-12L;
+    int n, m;
+    vector<int> bas, nb;
+    vector<vector<ld>> a;
+
+    Simplex(const vector<vector<ld>>& A, const vector<ld>& b,
+                             const vector<ld>& c)
+        : n(b.size()), m(c.size()), bas(n),
+          nb(m + 1), a(n + 2, vector<ld>(m + 2, 0)) {
+        assert(A.size() == n);
+        for (int i = 0; i < n; ++i) {
+            assert(A[i].size() == m);
+            for (int j = 0; j < m; ++j) a[i][j] = A[i][j];
+        }
+        for (int i = 0; i < n; ++i) {
+            bas[i] = m + i;
+            a[i][m] = -1;
+            a[i][m + 1] = b[i];
+        }
+        for (int j = 0; j < m; ++j) {
+            nb[j] = j;
+            a[n][j] = -c[j];
+        }
+        nb[m] = -1;
+        a[n + 1][m] = 1;
+    }
+
+    void pivot(int row, int c) {
+        ld inv = 1 / a[row][c];
+        for (int i = 0; i < n + 2; ++i) {
+            if (i == row) continue;
+            for (int j = 0; j < m + 2; ++j) {
+                if (j == c) continue;
+                a[i][j] -= a[row][j] * a[i][c] * inv;
+            }
+        }
+        for (int j = 0; j < m + 2; ++j) if (j != c) a[row][j] *= inv;
+        for (int i = 0; i < n + 2; ++i) if (i != row) a[i][c] *= -inv;
+        a[row][c] = inv;
+        swap(bas[row], nb[c]);
+    }
+
+    bool simplex(int ph) {
+        int obj = ph == 1 ? n + 1 : n;
+        while (true) {
+            int in = -1;
+            for (int c = 0; c <= m; ++c) {
+                if (ph == 2 && nb[c] == -1) continue;
+                if (in == -1 || a[obj][c] < a[obj][in] - EPS ||
+                    (fabsl(a[obj][c] - a[obj][in]) <= EPS &&
+                     nb[c] < nb[in])) {
+                    in = c;
+                }
+            }
+            if (a[obj][in] >= -EPS) return true;
+
+            int out = -1;
+            for (int row = 0; row < n; ++row) {
+                if (a[row][in] <= EPS) continue;
+                if (out == -1 ||
+                    a[row][m + 1] / a[row][in] <
+                        a[out][m + 1] / a[out][in] - EPS ||
+                    (fabsl(a[row][m + 1] / a[row][in] -
+                           a[out][m + 1] / a[out][in]) <= EPS &&
+                     bas[row] < bas[out])) {
+                    out = row;
+                }
+            }
+            if (out == -1) return false;
+            pivot(out, in);
+        }
+    }
+
+    LPRes solve() {
+        if (n == 0) {
+            for (int j = 0; j < m; ++j)
+                if (a[n][j] < -EPS) return {LPStatus::Unbounded, 0, {}};
+            return {LPStatus::Optimal, 0, vector<ld>(m, 0)};
+        }
+
+        int row = 0;
+        for (int i = 1; i < n; ++i)
+            if (a[i][m + 1] < a[row][m + 1]) row = i;
+        if (a[row][m + 1] < -EPS) {
+            pivot(row, m);
+            if (!simplex(1) || a[n + 1][m + 1] < -EPS) {
+                return {LPStatus::Infeasible, 0, {}};
+            }
+            if (fabsl(a[n + 1][m + 1]) > EPS) {
+                return {LPStatus::Infeasible, 0, {}};
+            }
+            for (int i = 0; i < n; ++i) {
+                if (bas[i] != -1) continue;
+                int c = 0;
+                for (int j = 1; j <= m; ++j) {
+                    if (a[i][j] < a[i][c] - EPS ||
+                        (fabsl(a[i][j] - a[i][c]) <= EPS && nb[j] < nb[c])) {
+                        c = j;
+                    }
+                }
+                pivot(i, c);
+            }
+        }
+        if (!simplex(2)) return {LPStatus::Unbounded, 0, {}};
+        vector<ld> sol(m, 0);
+        for (int i = 0; i < n; ++i) {
+            if (bas[i] < m) sol[bas[i]] = a[i][m + 1];
+        }
+        return {LPStatus::Optimal, a[n][m + 1], sol};
+    }
+};
+```
+
+### 05H - 高斯消元（GF(2) 位集）
+用位集求异或线性方程组，基于 bitset 和布尔异或。
+$\mathcal O(\textrm{rows}\cdot\textrm{variables}\cdot\textrm{MAX\_VARIABLES}/\textrm{word\_bits})$。
+
+每行 bitset 的前 `variables` 位为系数，下一位为常数；要求 `variables<=MAX_VARIABLES`，适合布尔约束。
+
+```cpp
+enum class GaussStat { Unique, Infinite, Inconsistent };
+
+template <int M> struct GaussRes {
+    GaussStat st;
+    vector<int> sol;  // Infinite 时自由元取 0 的一组特解。
+    vector<int> pc;
+};
+
+template <int M>
+GaussRes<M> gauss(vector<bitset<M + 1>> a,
+                                                            int m) {
+    assert(0 <= m && m <= M);
+    int n = a.size();
+    vector<int> pc;
+    int pr = 0;
+    for (int c = 0; c < m && pr < n; ++c) {
+        int vis = pr;
+        while (vis < n && !a[vis][c]) ++vis;
+        if (vis == n) continue;
+        swap(a[vis], a[pr]);
+        for (int row = 0; row < n; ++row) {
+            if (row != pr && a[row][c]) a[row] ^= a[pr];
+        }
+        pc.push_back(c);
+        ++pr;
+    }
+    for (int row = pr; row < n; ++row) {
+        bool has = false;
+        for (int c = 0; c < m; ++c) has = has || a[row][c];
+        if (!has && a[row][m]) return {GaussStat::Inconsistent, {}, pc};
+    }
+    vector<int> sol(m, 0);
+    for (int row = 0; row < pr; ++row) sol[pc[row]] = a[row][m];
+    return {pr == m ? GaussStat::Unique : GaussStat::Infinite, sol, pc};
+}
+```
+
+### 05I - 矩阵树定理（Kirchhoff）
+计算无向带权图生成树数。
+依赖行列式。
+构造拉普拉斯余子式后为 $\mathcal O(n^3)$。
+
+在 `Z` 上计算无向带权图生成树数；依赖行列式模板，通常使用 `MInt<P>`。
+
+```cpp
+template <class Z> Z kirch(int n, const vector<tuple<int, int, Z>>& e) {
+    assert(n >= 0);
+    if (n <= 1) return Z(1);
+    vector<vector<Z>> a(n, vector<Z>(n));
+    for (auto [u, v, w] : e) {
+        assert(0 <= u && u < n && 0 <= v && v < n);
+        if (u == v) continue;
+        a[u][u] += w;
+        a[v][v] += w;
+        a[u][v] -= w;
+        a[v][u] -= w;
+    }
+    vector<vector<Z>> b(n - 1, vector<Z>(n - 1));
+    for (int i = 0; i + 1 < n; ++i)
+        for (int j = 0; j + 1 < n; ++j) b[i][j] = a[i][j];
+    return det(move(b));
+}
+```
+
+## 06 - 常见数列
+
+### 06A - Fibonacci（快速倍增）
+用快速倍增求 Fibonacci 的相邻两项。
+$\mathcal O(\log n)$ 时间、$\mathcal O(\log n)$ 递归栈。
+
+```cpp
+template <class T> pair<T, T> fib2(int n) {
+    assert(n >= 0);
+    if (!n) return {T(0), T(1)};
+    auto [x, y] = fib2<T>(n >> 1);
+    T a = x * (T(2) * y - x);
+    T b = x * x + y * y;
+    return n & 1 ? pair<T, T>{b, a + b} : pair<T, T>{a, b};
+}
+
+template <class T> T fib(int n) {
+    return fib2<T>(n).first;
+}
+```
+
+### 06B - 约瑟夫环
+求约瑟夫环最后幸存者位置，基于整数取模。
+$\mathcal O(n)$ 时间、$\mathcal O(1)$ 空间。
+
+从 $0$-indexed 人群中每次数 $k$ 个删除，返回最后幸存者；适合 $n$ 可线性枚举的场景。
+
+```cpp
+
+inline int joseph(int n, int stp) {
+    assert(n >= 1 && stp >= 1);
+    int ans = 0;
+    for (int siz = 2; siz <= n; ++siz) ans = (ans + stp) % siz;
+    return ans;
+}
+
+inline int joseph1(int n, int stp) {
+    return joseph(n, stp) + 1;
+}
+```
+
+## 07 - 伯努利数与幂和
+
+### 07A - 伯努利数与幂和
+预处理伯努利数并计算连续整数幂和，适用于可逆系数域。
+预处理 $\mathcal O(d^2)$，单次 $\mathcal O(k)$。
+
+`Z` 需支持构造、加减乘除及 `pow/inv`；约定 $B_1=-1/2$，接口为 `Bernoulli<Z>` 的构造、`ask(k,n)` 与 `ask(k,l,r)`。
+
+```cpp
+template <class Z> struct Bernoulli {
+    int d;
+    vector<Z> b, fac, iv;
+
+    explicit Bernoulli(int _d) : d(_d), b(_d + 2), fac(_d + 3), iv(_d + 3) {
+        assert(d >= 0);
+        fac[0] = 1;
+        for (int i = 1; i <= d + 2; ++i) fac[i] = fac[i - 1] * Z(i);
+        iv[d + 2] = fac[d + 2].inv();
+        for (int i = d + 2; i; --i) iv[i - 1] = iv[i] * Z(i);
+        b[0] = 1;
+        for (int i = 1; i <= d + 1; ++i) {
+            Z s = 0;
+            for (int j = 0; j < i; ++j) s += C(i + 1, j) * b[j];
+            b[i] = -s / Z(i + 1);
+        }
+    }
+
+    Z C(int n, int k) const {
+        if (k < 0 || k > n) return 0;
+        return fac[n] * iv[k] * iv[n - k];
+    }
+
+    // 1^k + 2^k + ... + n^k，n=0 时返回 0。
+    Z ask(int k, int n) const {
+        assert(0 <= k && k <= d && n >= 0);
+        vector<Z> pw(k + 2);
+        pw[0] = 1;
+        Z x = Z(n + 1);
+        for (int i = 1; i <= k + 1; ++i) pw[i] = pw[i - 1] * x;
+        Z s = 0, q = 0;
+        for (int j = 0; j <= k + 1; ++j) {
+            Z c = C(k + 1, j) * b[j];
+            s += c * pw[k + 1 - j];
+            q += c;
+        }
+        return (s - q) / Z(k + 1);
+    }
+
+    // l^k + (l+1)^k + ... + r^k，要求 1<=l<=r。
+    Z ask(int k, int l, int r) const {
+        assert(1 <= l && l <= r);
+        return ask(k, r) - ask(k, l - 1);
+    }
+};
+```
+
+### 07AA - 伯努利数（NTT快速求法）
+用形式幂级数快速生成伯努利数，要求 NTT 友好质数模。
+依赖多项式。
+$\mathcal O(n\log n)$。
+
+要求 NTT 友好质数模且 $n+1<\textrm{mod}$；相比 `07A` 适合更大的阶数，但只返回伯努利数表。
+
+```cpp
+template <class Z, int G = 3> vector<Z> bernFast(int n) {
+    assert(0 <= n && n + 1 < Z::askMod());
+    vector<Z> fac(n + 2), iv(n + 2), h(n + 1);
+    fac[0] = 1;
+    for (int i = 1; i <= n + 1; ++i) fac[i] = fac[i - 1] * Z(i);
+    iv[n + 1] = fac[n + 1].inv();
+    for (int i = n + 1; i; --i) iv[i - 1] = iv[i] * Z(i);
+    for (int i = 0; i <= n; ++i) h[i] = iv[i + 1];
+    vector<Z> a = Poly<Z, G>::inv(h, n + 1);
+    for (int i = 0; i <= n; ++i) a[i] *= fac[i];
+    return a;
+}
+```
+
+## X - 结论
+
+### 数学知识、结论与例题
+
+使用公式前先检查四件事：
+
+1. 模数是否为质数、分母是否可逆；
+2. 计数对象是否有标号、是否允许为空、是否允许重复；
+3. 是否存在负数、溢出或浮点误差；
+4. 结论是否只适用于有限无环、互素、非零主元等前提。
+
+#### 0. 赛时检索入口
+
+|看到的结构|先想的结论|对应模板|
+|---|---|---|
+|大 $n$、小质数模的组合数|Lucas 分位相乘|`03B`|
+|多个整除条件的并集|容斥，交集取 $\operatorname{lcm}$|`04A` / `04B`|
+|“互质”计数、约数和反演|$\sum_{d\mid n}\mu(d)$|`01EA`、`01EB`、`01EC`、`01ED`|
+|球盒、集合划分、合法括号|隔板法、Stirling、Catalan|`03A`、`03E`、`03F`、`03G`|
+|排列排名或反排名|康托展开|`03C` / `03D`|
+|大整数判素或分解|Miller-Rabin + Pollard-Rho|`01G` / `01GA`|
+|同余方程、逆元、多个余数|exgcd、CRT|`02CA` / `02CB`|
+|互素元素的最小正周期|逐次约除群阶的质因子|`02L`|
+|质数模平方根|Tonelli-Shanks / Cipolla|`02FA` / `02FB`|
+|离散对数且 $p-1$ 的质因子较小|Pohlig-Hellman 分解群阶|`02J`|
+|一个操作数在固定小值域、另一个很大且 gcd 查询很多|分解 $x$ 为三个小/素因子块|`02K`|
+|底数或指数是十进制大数|逐位十进制快速幂|`02I`|
+|需要 floor 值及其一、二次矩|加权整除和（万能欧几里得）|`02HA`|
+|按位和、异或、子掩码|恒等式、FWT / SOS / 线性基|多项式与杂类目录|
+|二维卷积、生成函数第 $n$ 项、连续点值平移、Power Projection|二维 NTT、Bostan-Mori、卷积平移、幂投影|多项式目录|
+|正常规则的公平组合游戏|Nim、SG|博弈论目录|
+|递推第 $n$ 项|矩阵、BM、Kitamasa、快速倍增|`05A`、`03L`、`03LA`、`06A`|
+
+#### 1. 模运算、逆元与整除分块
+
+##### 1.1 除法、余数与负数
+
+对于 $x\ge 0,m>0$，令 $q=\lfloor x/m\rfloor$，则
+
+$$
+x=qm+r,\qquad r=x-qm,\qquad 0\le r<m.
+$$
+
+- `C++` 整数除法对负数向 $0$ 截断，不能把负数情形直接当作数学上的下取整。若需要标准余数，使用 $((x\bmod m)+m)\bmod m$。
+- 把 $x$ 加到下一个 $m$ 的倍数所需的非负增量为 $(m-x\bmod m)\bmod m$；不能漏掉最后一层模，否则 $x\bmod m=0$ 时会误得 $m$。
+- 若只依赖 $\lfloor n/i\rfloor$，从左端点 $l$ 开始的一段相同商为
+
+$$
+r=\left\lfloor\frac{n}{\lfloor n/l\rfloor}\right\rfloor,\qquad
+\left\lfloor\frac ni\right\rfloor=\left\lfloor\frac nl\right\rfloor\quad(l\le i\le r).
+$$
+
+  不同商只有 $\mathcal O(\sqrt n)$ 个。对应 `02H`，杜教筛也以此为基础。
+- 加权整除和令 $y_i=\left\lfloor(ai+b)/c\right\rfloor$，`02HA` 同时返回
+
+$$
+\sum_{i=0}^{n}y_i,\qquad
+\sum_{i=0}^{n}iy_i,\qquad
+\sum_{i=0}^{n}y_i^2.
+$$
+
+  它把欧几里得递归的边界点计数扩展为一、二次矩；适合后续矩阵转移或二次代价。实现要求 $2,6$ 在系数域中可逆，通常取质数模的 `MInt`。
+- 调和数 $H_n=\sum_{i=1}^n1/i$ 满足
+
+$$
+H_n=\ln n+\gamma+\frac1{2n}-\frac1{12n^2}+\mathcal O(n^{-4}),
+\qquad \gamma\approx0.5772156649.
+$$
+
+  因此许多 $\sum n/i$ 型循环是 $\mathcal O(n\log n)$；近似式只用于估计，不能替代精确计数。
+
+##### 1.2 模逆、快速幂与 CRT
+
+- 若 $p$ 为质数且 $a\not\equiv0\pmod p$，费马小定理给出 $a^{p-1}\equiv1\pmod p$，故 $a^{-1}\equiv a^{p-2}\pmod p$。对应 `02A`、`02B`。
+- 一般模数 $m$ 下，$a$ 有逆元当且仅当 $\gcd(a,m)=1$。扩展欧几里得给出 $ax+my=1$，其中 $x\bmod m$ 是逆元。对应 `02CA`。
+- 线性同余 $ax\equiv b\pmod m$ 有解当且仅当 $d=\gcd(a,m)$ 整除 $b$；约去 $d$ 后求逆，可得到模 $m/d$ 的一类解。
+- 广义 CRT 合并
+
+$$
+x\equiv r_1\pmod {m_1},\qquad x\equiv r_2\pmod {m_2}
+$$
+
+-  的充要条件是 $\gcd(m_1,m_2)\mid(r_2-r_1)$；合并后的模数为 $\operatorname{lcm}(m_1,m_2)$。对应 `02CB`。
+- MInt 的加、减、乘不要求质数模；除法与 `inv()` 要求元素可逆。默认费马逆元不可直接用于复合模。
+- Barrett 约简以乘高位近似商，适合固定运行时模数的大量乘法。`02BA` 只承诺 $1\le m<2^{31}$；完整 64 位模乘仍使用 `02A` 的 `u128` 分支，不能为了常数直接替换。
+- 正整数 $n\ge2$ 存在原根，当且仅当 $n=2,4,p^k,2p^k$，其中 $p$ 为奇质数、$k\ge1$。
+- 在模 $n$ 存在原根时，$g$ 是原根当且仅当 $\gcd(g,n)=1$，且对 $\varphi(n)$ 的每个不同质因子 $q$ 均有 $g^{\varphi(n)/q}\not\equiv1\pmod n$。
+- 若 $g$ 是模 $n$ 的一个原根，则全部原根恰为
+
+$$
+g^k\bmod n\qquad(1\le k\le\varphi(n),\ \gcd(k,\varphi(n))=1),
+$$
+
+  因而共有 $\varphi(\varphi(n))$ 个。`02G` 的 `exist(n)` 先判断存在性，`roots(n)` 按数值递增返回这一集合；不存在时返回空数组。
+- BSGS 直接在群中做 baby-step/giant-step，通用复杂度是 $\mathcal O(\sqrt p)$。若 $p$ 为质数、$g$ 是原根且 $p-1=\prod q_i^{e_i}$，Pohlig-Hellman 把指数分别模 $q_i^{e_i}$ 求出再 CRT 合并，复杂度主要为 $\sum_i \mathcal O(\sqrt{q_i}\log p)$。因此它只在群阶平滑时有优势，对大质因子不应强行替代 BSGS。
+- 十进制指数 $b=(\cdots d_2d_1d_0)_{10}$ 可从左到右维护 $r\leftarrow r^{10}a^{d_i}\bmod m$。该恒等式不要求 $a,m$ 互素，适合指数无法读入整数时的 `02I`；欧拉降幂只是在满足额外条件时的另一种优化。
+- 模平方根的 `02FA` 是确定性 Tonelli-Shanks；`02FB` 的 Cipolla 先随机找 $a$ 使 $a^2-n$ 为非二次剩余，再在二次扩域中计算 $(a+\sqrt{a^2-n})^{(p+1)/2}$​。两者都只用于质数模；无解先由 Legendre 符号判断。Cipolla 的随机循环期望常数次结束，但不能在要求严格确定性的场合替代 `02FA`。
+
+#### 1.3 杂类
+
+- 求最小乘法阶（最小正整数满足 $a^x\equiv 1\pmod m$ ）的过程见 `02L`：
+  - 求 $\varphi(m)$ ，令 $k = \varphi(m)$ 。
+  - 对于所有 $\varphi(m)$ 的质因数 $p$ ，判断 $a^{k/p}\equiv 1\pmod m$ 是否成立，成立则令 $k:=k/p$ 。
+  - 最后的 $k$ 则为最小乘法阶。
+- 前提是 $m>1$ 且 $\gcd(a,m)=1$。若已知更紧的群阶 $k$（例如质数模使用 $p-1$，或一般群使用 Carmichael 函数 $\lambda(m)$），可直接把 $k$ 及其不同质因子传给 `02L`，避免再次分解 $m$。
+
+##### 1.4 常用数量级与模板自检数据（对照）
+
+以下数据用于估算筛、整除分块和数论模板的边界，也可作为提交前的固定回归样例。表中的“$N=10^k$”均表示不超过该上界。
+
+#### 整除对数与素数数量
+
+令
+
+$$
+D(N)=\sum_{i=1}^{N}\left\lfloor\frac Ni\right\rfloor
+      =\sum_{n\le N}\tau(n),
+$$
+
+它统计有序整除对 $(i,j)$ 的数量，也是很多双重枚举的实际循环次数。原表给出的数量为：
+
+| $N$ | $10$ | $10^2$ | $10^3$ | $10^4$ | $10^5$ | $10^6$ | $10^7$ | $10^8$ | $10^9$ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| $D(N)$ | 27 | 482 | 7069 | 93668 | 1166750 | 13970034 | 162725364 | 1857511568 | 20877697634 |
+| $\pi(N)$ | 4 | 25 | 168 | 1229 | 9592 | 78498 | 664579 | 5761455 | 50847534 |
+
+不超过 $10^9$ 的相邻素数最大间隔为 282（统计值）；需要严格边界时仍应在题目给定范围内实际筛选。
+
+#### 不超过 $N$ 的最大约数个数
+
+设 $T(N)=\max_{n\le N}\tau(n)$。原表记录如下，原样保留以便对照资料：
+
+| $N$ 量级 | $10$ | $10^2$ | $10^3$ | $10^4$ | $10^5$ | $10^6$ | $10^7$ |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 原表 $T(N)$ | 4 | 25 | 32 | 64 | 128 | 240 | 448 |
+| 按 $\tau(n)$ 穷举复核的 $T(N)$ | 4 | 12 | 32 | 64 | 128 | 240 | 448 |
+| 达到最大值的代表数字 | 6, 8, 10 | 60, 72, 84, 90, 96 | 840 | 7560, 9240 | 83160, 98280 | 720720, 831600, 942480, 982800, 997920 | 8648640 |
+
+$10^2$ 的 $25$ 是原表笔误；不超过 $100$ 的最大约数个数应为 $12$。其余列与穷举结果一致。记忆估算时可用 $\tau(n)=\prod(e_i+1)$，不要把“约数最多数字”误解成恰好等于 $N$ 的数字。
+
+#### 组合数与 Catalan 自检值
+
+大整数组合数固定值：
+
+$$
+\binom{132}{66}
+=377389666165540953244592352291892721700,
+$$
+
+$$
+\binom{132}{66}\bmod 998244353=241200029,
+\qquad
+\binom{132}{66}\bmod 1000000007=598375978.
+$$
+
+Catalan 数 $C_n=\frac1{n+1}\binom{2n}{n}$ 的前十项（$n=0\ldots9$）为
+
+```text
+1 1 2 5 14 42 132 429 1430 4862
+```
+
+#### 建议保留的短回归样例
+
+| 模板/运算 | 输入 | 期望值 |
+|---|---|---|
+|exgcd / gcd|$\gcd(48,18)$|6|
+|积性函数|$\varphi(36)$，$\mu(30)$，$\mu(12)$|12，-1，0|
+|约数函数|$\tau(720720)$，$\sigma(12)$|240，28|
+|最小乘法阶 `02L`|$\operatorname{ord}_7(3)$，$\operatorname{ord}_8(3)$，$\operatorname{ord}_{10}(3)$，$\operatorname{ord}_{12}(5)$|6，2，4，2|
+|模逆 / 快速幂|$3^{-1}\bmod 998244353$，$2^{10}\bmod1000$|332748118，24|
+|CRT|$x\equiv2\pmod3,\ x\equiv3\pmod5$|$x\equiv8\pmod {15}$|
+|BSGS|$2^x\equiv8\pmod {13}$|$x=3$|
+|模平方根|$x^2\equiv10\pmod {13}$|$x=6$ 或 7|
+|斯特林二类|$S(5,k),\ k=0\ldots5$|0，1，15，25，10，1|
+|斯特林一类（无符号）|$c(5,k),\ k=0\ldots5$|0，24，50，35，10，1|
+|Bell|$B_0\ldots B_{10}$|1，1，2，5，15，52，203，877，4140，21147，115975|
+|整数分拆|$p(0)\ldots p(10)$|1，1，2，3，5，7，11，15，22，30，42|
+|Fibonacci|$F_0\ldots F_{10}$|0，1，1，2，3，5，8，13，21，34，55|
+|NTT 卷积|$[1,2,3]*[4,5]$|$[4,13,22,15]$|
+
+Bernoulli 数采用 $B_1=-1/2$ 约定时，$B_0\ldots B_6$ 为
+`1, -1/2, 1/6, 0, -1/30, 0, 1/42`；若代码采用 $B_1=+1/2$，只需对照约定，不要据此判错。
+
+#### 2. 素数、最大公因数与积性函数
+
+##### 2.1 筛、分解与欧拉函数
+
+- 上界可开且查询多时，`01A` 线性筛可同时得到最小质因子、$\varphi$ 与 $\mu$。单个 64 位整数用 `01G` 判素，合数交给 `01GA` 分解。
+- 若 $n=\prod p_i^{e_i}$，则
+
+$$
+\varphi(n)=n\prod_{p\mid n}\left(1-\frac1p\right)
+=\prod_i p_i^{e_i-1}(p_i-1).
+$$
+
+- 对 $n>1$，$1\le a\le n$ 且 $\gcd(a,n)=1$ 的数之和为 $n\varphi(n)/2$。
+- $\varphi$ 是积性函数：$\gcd(a,b)=1$ 时 $\varphi(ab)=\varphi(a)\varphi(b)$；任意积性函数都可由各个质数幂上的值相乘得到。
+- 常用约数和：
+
+$$
+\sum_{d\mid n}\varphi(d)=n,
+\qquad
+\sum_{i=1}^n\gcd(i,n)
+=\sum_{d\mid n}d\varphi(n/d)
+=\sum_{d\mid n}\frac nd\varphi(d).
+$$
+
+  已知分解后，约数个数 $\tau(n)=\prod(e_i+1)$，约数和 $\sigma(n)=\prod(1+p_i+\cdots+p_i^{e_i})$。对应 `01I`。
+
+##### 2.2 gcd 的平移与差分
+
+- 欧几里得算法可写成 $\gcd(x,y)=\gcd(x,y-x)$。因此
+
+$$
+\gcd(a_1,a_2,\ldots,a_n)
+=\gcd(a_1,a_2-a_1,\ldots,a_n-a_1).
+$$
+
+  遇到“所有数同时加 $x$ 后的 gcd”时，先把问题化为一个数与若干差分的 gcd。
+- 若大量查询满足 $0\le x\le N$ 且另一个操作数可很大，`02K` 将 $x$ 拆成至多三个“$\le\sqrt N$ 或素数”的因子块；小块 gcd 查表、素数块只需一次取模判断。预处理约 $\mathcal O(N)$，只适合固定值域的高频查询，普通 gcd 直接用标准库更短且常数更小。
+- 令 $d=\gcd(a,m)$。在模 $m$ 的所有 $x$ 中，恰有 $\varphi(m/d)$ 个满足
+
+$$
+\gcd(a+x,m)=d.
+$$
+
+  精确条件是 $x=dt$ 且 $\gcd(a/d+t,m/d)=1$；不能把它误写成简单的 $\gcd(x,m)=d$。
+- 若 $a\equiv b\pmod m$，则对任何整数 $k$ 有 $a+km\equiv b\pmod m$。周期题要先确认外层操作是否也只依赖这一余数。
+
+##### 2.3 两个常用存在性结论
+
+- 鸽巢原理：把 $N$ 个物体放入 $M$ 个盒子，至少有一个盒子不少于 $\lceil N/M\rceil$ 个；若每盒至多 $k$ 个，则总数至多 $Mk$。
+- Frobenius（麦乐鸡）定理：若互素正整数 $a,b>1$，则不能写成 $xa+yb$（$x,y\ge0$）的最大整数为 $ab-a-b$，所有大于它的整数均可表示。若 $\gcd(a,b)>1$，先注意到非该 gcd 倍数的数永远不可表示。
+- 强哥德巴赫命题“每个大于 $2$ 的偶数是两个素数之和”至今不是可直接引用的定理。竞赛构造题应在给定范围内筛素数并枚举验证；若题目明确提供相关条件，再按题意使用。
+
+#### 3. 组合计数：先区分球和盒
+
+设有 $N$ 个球、$M$ 个盒。盒“不同”即有标号，球“不同”即每个球可区分。
+
+|球|盒|限制|答案或模型|
+|---|---|---|---|
+|相同|不同|每盒非空|$\binom{N-1}{M-1}$，要求 $N\ge M\ge1$|
+|相同|不同|允许空|$\binom{N+M-1}{M-1}$|
+|不同|不同|允许空|$M^N$|
+|不同|不同|每盒至多一个|$A(M,N)$|
+|不同|不同|每盒非空|$M!\,S(N,M)$|
+|不同|相同|恰好 $M$ 个非空盒|第二类 Stirling 数 $S(N,M)$|
+|不同|相同|至多 $M$ 个非空盒|$\sum_{j=0}^{\min(N,M)}S(N,j)$|
+|相同|相同|至多 $M$ 个非空盒|整数分拆，生成函数 $\prod_{i=1}^M(1-x^i)^{-1}$|
+|相同|相同|恰好 $M$ 个非空盒|等价于把 $N-M$ 分拆为至多 $M$ 份|
+
+前两行是隔板法；只有盒有标号时才能直接用组合数。最后两行不是简单的隔板法，应使用整数分拆 DP 或 `03K` 的相关思想。
+
+##### 3.1 组合数、Lucas 与常用恒等式
+
+- 当模数 $p$ 为质数且 $0\le n<p$ 时，
+
+$$
+\binom nk=\frac{n!}{k!(n-k)!}\pmod p.
+$$
+
+  `03A` 预处理阶乘和逆阶乘后单次 $\mathcal O(1)$。若 $n\ge p$，阶乘含因子 $p$，不可直接套用。
+- Lucas 定理：把 $n,k$ 写成 $p$ 进制，则
+
+$$
+\binom nk\equiv\prod_i\binom{n_i}{k_i}\pmod p.
+$$
+
+  它要求 $p$ 为质数，且 `03B` 需开到 $p$ 的表，只适合小质数模。复合模组合数使用 `02CC`。
+- Pascal、提取与二项式定理：
+
+$$
+\binom nk+\binom n{k+1}=\binom {n+1}{k+1},
+\qquad
+k\binom nk=n\binom {n-1}{k-1},
+\qquad
+(x+y)^n=\sum_{k=0}^n\binom nkx^ky^{n-k}.
+$$
+
+- 常用求和：
+
+$$
+\sum_{k=0}^n\binom nk=2^n,\quad
+\sum_{k=0}^n(-1)^k\binom nk=[n=0],
+$$
+
+$$
+\sum_{k=0}^nk\binom nk=n2^{n-1},\quad
+\sum_{k=0}^nk^2\binom nk=n(n+1)2^{n-2},
+\quad
+\sum_{k=0}^n\binom nk^2=\binom {2n}n.
+$$
+
+  交错调和恒等式是 $\sum_{k=1}^n(-1)^{k+1}\binom nk/k=H_n$；没有交错号时不能简化为 $H_n$。
+- 范德蒙德卷积与曲棍球杆：
+
+$$
+\sum_i\binom ni\binom m{k-i}=\binom {n+m}k,
+\qquad
+\sum_{i=0}^r\binom {s+i}i=\binom {s+r+1}r.
+$$
+
+- 二项式反演：
+
+$$
+f_n=\sum_{i=0}^n\binom nig_i
+\Longleftrightarrow
+g_n=\sum_{i=0}^n(-1)^{n-i}\binom nif_i.
+$$
+
+  若出现“选出一部分后再选一部分”，先尝试 $\binom nk\binom kr=\binom nr\binom {n-r}{k-r}$。
+- 拉格朗日恒等式（实数或复数向量）：
+
+$$
+\sum_{i<j}(a_ib_j-a_jb_i)^2
+=\left(\sum_i a_i^2\right)\left(\sum_i b_i^2\right)
+-\left(\sum_i a_ib_i\right)^2.
+$$
+
+  它常用于把两两叉积平方和化为三组前缀和；右侧前两个求和必须带平方。
+
+##### 3.2 有上下界的非负整数解
+
+非负整数 $x_1,\ldots,x_n$ 满足
+
+$$
+x_1+\cdots+x_n=m,\qquad 0\le x_i<k
+$$
+
+的方案数为
+
+$$
+\sum_{j=0}^{\min(n,\lfloor m/k\rfloor)}
+(-1)^j\binom nj\binom {m-jk+n-1}{n-1}.
+$$
+
+思路是先用隔板法，再把违反 $x_i<k$ 的变量减去 $k$ 后容斥。组合数越界视为 $0$。模意义下还要满足所用组合数模板的模数前提。
+
+##### 3.3 Catalan、Stirling、错排与对称计数
+
+- Catalan 数
+
+$$
+\operatorname{Cat}_n=\frac1{n+1}\binom {2n}n
+=\binom {2n}n-\binom {2n}{n+1},
+\qquad
+\operatorname{Cat}_n=\operatorname{Cat}_{n-1}\frac{4n-2}{n+1}.
+$$
+
+  它计数合法括号、栈排列、含 $n$ 个结点的有根二叉树、凸 $(n+2)$ 边形三角剖分。格点路径从 $(0,0)$ 到 $(n,n)$ 且不越过对角线为 $\operatorname{Cat}_n$；除端点外不触对角线的双侧路径共有 $2\operatorname{Cat}_{n-1}$。对应 `03E`。
+- 第二类 Stirling 数 $S(n,k)$ 是把 $n$ 个不同元素划分成 $k$ 个非空无标号集合：
+
+$$
+S(n,k)=S(n-1,k-1)+kS(n-1,k).
+$$
+
+  第一类无符号 Stirling 数 $c(n,k)$ 是有 $k$ 个环的排列：
+
+$$
+c(n,k)=c(n-1,k-1)+(n-1)c(n-1,k).
+$$
+
+   对应 `03F`。需要固定 $n$ 的整行时，`03FA` 使用
+
+$$
+S(n,k)=\sum_{i=0}^{k}\frac{i^n}{i!}\frac{(-1)^{k-i}}{(k-i)!}
+$$
+
+  做一次卷积，复杂度 $\mathcal O(n\log n)$；无符号第一类数是多项式
+  $\prod_{i=0}^{n-1}(x+i)$ 的系数，`03FA` 用乘积树和 NTT，复杂度 $\mathcal O(n\log^2n)$。两者都要求 NTT 友好质数且 $n<p$；小规模或只查少量项仍用 `03F` 的 $\mathcal O(n^2)$ 递推。
+- 错排数 $D(n)=(n-1)(D(n-1)+D(n-2))$；Bell 数为所有集合划分总数。对应 `03G`。Bell 数整表的指数型生成函数为
+
+$$
+\sum_{n\ge0}B_n\frac{x^n}{n!}=\exp(\exp(x)-1)
+$$
+
+  `03GA` 用形式幂级数 `exp` 在 $\mathcal O(n\log n)$ 内求出整表；小规模使用 `03G` 的线性/二次递推更省常数。
+- Burnside：不同等价类数为所有群元素不动点数之和除以群大小。先列清旋转、翻转等变换如何作用，再用 `03M`。
+- 当模数是 NTT 友好质数且 $n<p$ 时，`03N` 将 $n!$ 分成长度约 $\sqrt n$ 的连续块，把块积看作多项式并多点求值，复杂度为 $\mathcal O(\sqrt n\log^2n)$。小 $n$ 的普通循环常数更小；$n\ge p$ 时阶乘模 $p$ 为 $0$。
+
+#### 4. 容斥、莫比乌斯反演与 Dirichlet 卷积
+
+##### 4.1 容斥
+
+若事件为 $d_i\mid x$，交集对应 $\operatorname{lcm}$：
+
+$$
+\left|\bigcup_iA_i\right|
+=\sum_{\varnothing\ne S}(-1)^{|S|+1}
+\left\lfloor\frac n{\operatorname{lcm}(d_i:i\in S)}\right\rfloor.
+$$
+
+因子不必互素，但重复因子及被更小因子整除的因子应先删去。`04A` 是 bitmask 枚举；`04B` 用 DFS 和 $\operatorname{lcm}>n$ 剪枝，最坏复杂度仍为指数级。
+
+##### 4.2 莫比乌斯函数与两个方向的反演
+
+$$
+\mu(1)=1,\qquad
+\mu(n)=
+\begin{cases}
+0,&p^2\mid n\textrm{ 对某个质数 }p,\\
+(-1)^{\omega(n)},&\textrm{否则}.
+\end{cases}
+\qquad
+\sum_{d\mid n}\mu(d)=[n=1].
+$$
+
+- 约数和方向：
+
+$$
+F(n)=\sum_{d\mid n}f(d)
+\Longleftrightarrow
+f(n)=\sum_{d\mid n}\mu(d)F(n/d).
+$$
+
+- 倍数和方向：
+
+$$
+G(n)=\sum_{n\mid d}f(d)
+\Longleftrightarrow
+f(n)=\sum_{k\ge1}\mu(k)G(nk).
+$$
+
+常用互质指示函数：
+
+$$
+[\gcd(a,b)=1]=\sum_{d\mid\gcd(a,b)}\mu(d).
+$$
+
+例如矩形内有序互质点对数为
+
+$$
+\sum_{d=1}^{\min(n,m)}
+\mu(d)\left\lfloor\frac nd\right\rfloor
+\left\lfloor\frac md\right\rfloor.
+$$
+
+普通前缀 $M(n)=\sum_{i\le n}\mu(i)$ 用 `01EA`；权为 $\mu(i)i^2$ 时用 `01EC`。约数和、倍数和的 zeta 与反演见 `01EB`。
+
+##### 4.3 Dirichlet 卷积
+
+$$
+(f*g)(n)=\sum_{d\mid n}f(d)g(n/d).
+$$
+
+令 $\varepsilon(1)=1,\varepsilon(n>1)=0$，$\mathbf1(n)=1$，$\operatorname{id}(n)=n$，则
+
+$$
+\mathbf1*\mu=\varepsilon,\qquad
+\varphi*\mathbf1=\operatorname{id},\qquad
+\mu*\operatorname{id}=\varphi.
+$$
+
+若要取 Dirichlet 逆，必须先确认 $f(1)$ 在系数环中可逆。对应 `01ED`。
+
+#### 5. 排列、插值、线性递推与常用数列
+
+##### 5.1 康托展开
+
+排列 $p_0,\ldots,p_{n-1}$ 的 1 起始排名为
+
+$$
+1+\sum_i c_i(n-1-i)!,
+$$
+
+其中 $c_i$ 是右侧比 $p_i$ 小的元素数。
+
+- `03C` 直接统计，$\mathcal O(n^2)$，可精确保留至 $20!$，适合小 $n$、调试和反排名；
+- `03D` 用树状数组，$\mathcal O(n\log n)$，适合大 $n$ 的模意义排名。
+
+两者是不同范围的实现，应同时保留。
+
+##### 5.2 插值、递推与分拆
+
+- `03H` 是任意横坐标的 $\mathcal O(n^2)$ 拉格朗日插值；`03I` 仅适合横坐标连续为 $0,\ldots,n-1$ 的场景。二者都要求分母可逆。
+- Newton 前向级数为
+
+$$
+f(x)=\sum_{k\ge0}\Delta^kf(0)\binom xk.
+$$
+
+  `03J` 适合需要显式有限差分系数的场景。
+- 整数分拆 $p(n)$ 可用 Euler 五边形数 $k(3k\pm1)/2$ 递推，见 `03K`。需要整表且 $n$ 较大时，`03KA` 使用
+  $$
+  \prod_{i\ge1}(1-x^i)^{-1}
+  =\exp\left(\sum_{k\ge1}\frac{\sigma(k)}{k}x^k\right)
+  $$
+  和 NTT 在 $\mathcal O(n\log n)$ 内求出 $p(0..n)$；小规模仍优先 `03K`。
+- BM 从数列前缀恢复最短线性递推，通常至少准备约两倍递推阶的数据；`03LA` 再以 $\mathcal O(k^2\log n)$ 求第 $n$ 项。
+- 已知 $k$ 阶齐次递推 $a_n=\sum_{j=1}^kc_ja_{n-j}$ 时，令
+
+$$
+C(x)=1-\sum_{j=1}^kc_jx^j,\qquad A(x)=\sum_{i=0}^{k-1}a_ix^i.
+$$
+
+则 $a_N=[x^N](A(x)C(x)\bmod x^k)/C(x)$；可接多项式目录的 Bostan-Mori。它与 `03LA` 的 Kitamasa 是同一问题的两种入口，前者在已有生成函数或快速卷积时更自然。
+
+##### 5.3 Fibonacci 与约瑟夫环
+
+取 $F_0=0,F_1=1$。对 $n\ge1,m\ge0$，有
+
+$$
+F_{n+m}=F_nF_{m+1}+F_{n-1}F_m,
+\qquad
+F_{n-1}F_{n+1}-F_n^2=(-1)^n.
+$$
+
+常用结论：
+
+$$
+F_n^2+F_{n+1}^2=F_{2n+1},\qquad
+\sum_{i=1}^nF_i^2=F_nF_{n+1},
+\qquad
+\gcd(F_a,F_b)=F_{\gcd(a,b)}.
+$$
+
+此外，
+
+$$
+\sum_{i=1}^nF_{2i-1}=F_{2n},\qquad
+\sum_{i=1}^nF_{2i}=F_{2n+1}-1.
+$$
+
+对正整数 $a,b$，$F_a\mid F_b$ 当且仅当 $a\mid b$。若 $p\ne5$ 为奇质数，则 $F_{p-(5/p)}\equiv0\pmod p$，其中 $(5/p)$ 是 Legendre 符号。任何正整数可唯一表示为若干个不相邻 Fibonacci 数之和（Zeckendorf），可从大到小贪心。
+
+`06A` 的快速倍增一次返回 $(F_n,F_{n+1})$，适用于任意支持所需环运算的类型。约瑟夫环的 0 起始递推为
+
+$$
+J(1,k)=0,\qquad J(n,k)=(J(n-1,k)+k)\bmod n.
+$$
+
+用 `06B` 时先统一下标是从 $0$ 还是从 $1$ 开始。
+
+#### 6. 按位运算、构造与子集变换
+
+##### 6.1 基础恒等式
+
+$$
+x+y=(x\oplus y)+2(x\mathbin{\&}y)
+=(x\mathbin{|}y)+(x\mathbin{\&}y),
+\qquad
+x+y\equiv x\oplus y\pmod2.
+$$
+
+- $\bigvee_i(X\mathbin{\&}a_i)=X\mathbin{\&}(\bigvee_i a_i)$。它等于 $X$ 的前提是 $X$ 的每一个 $1$ 位都被某个 $a_i$ 覆盖。
+- 两个非负数满足 $a+b=X,\ a\oplus b=Y$ 当且仅当
+
+$$
+X\ge Y,\qquad X-Y\textrm{ 为偶数},\qquad
+\left(\frac{X-Y}{2}\right)\mathbin{\&}Y=0.
+$$
+
+  此时令 $t=(X-Y)/2$，可取 $a=t,b=t+Y$。第三个按位无进位条件不可省略。
+- 三个非负数满足 $a+b+c=X,\ a\oplus b\oplus c=Y$ 时，充要条件仅为 $X\ge Y$ 且同奇偶；令 $t=(X-Y)/2$，取 $(a,b,c)=(t,t,Y)$ 即可。
+- 用恰好 $k$ 个 $2$ 的幂表示正整数 $n$ 的充要条件为
+
+$$
+\operatorname{popcount}(n)\le k\le n.
+$$
+
+  从高位把一个 $2^i$ 拆成两个 $2^{i-1}$，每次把项数加一，即可构造。对应杂类 `05A`。
+
+##### 6.2 FWT、SOS 与异或线性基
+
+- FWT 的卷积下标分别是 $i\mathbin{|}j$、$i\mathbin{\&}j$、$i\oplus j$；普通下标相加卷积仍用 NTT / FFT。XOR 逆变换最后除以长度，故变换长度必须在当前系数环中可逆。对应多项式 `01D`。
+- SOS 子集 zeta：$F[S]=\sum_{T\subseteq S}f[T]$；超集 zeta：$F[S]=\sum_{T\supseteq S}f[T]$。子集卷积为
+
+$$
+c[S]=\sum_{T\subseteq S}a[T]b[S\setminus T].
+$$
+
+  三者不能混用，见多项式 `01E`、`01EA`。
+- 单个掩码枚举子掩码为 $2^{\operatorname{popcount}(S)}$，所有掩码合计为 $3^{\textrm{bits}}$。异或线性基解决最大异或、可表示性与独立基，见数据结构目录；GF(2) 方程组则应使用 `05H`。
+
+#### 7. 矩阵、卷积与线性代数的前提
+
+- `05A` 的普通矩阵乘法在代数环上工作；`05B` 将加法换为 $\min$、乘法换为加法，适合固定边数最短路。
+- `05C` 是实数高斯消元，需按量级选择误差阈值；`05D` 的对称 LDLT 不交换行列，要求每一步主元非零，不能替代一般消元。
+- `05E`、`05F` 的模消元要求系数所在模数为质数（或更一般地说，所除主元可逆）。复合模和整数方程不能直接搬用。
+- `01A`/`01F` 的 NTT 都要求变换长度整除 $P-1$。`01A` 是易读通用版；`01F` 使用 `u32` Montgomery 与 radix-4，要求奇质数 $P<2^{30}$，适合卷积成为主要瓶颈时替换。
+- 若变换长度 $n\mid P-1$ 但 $n$ 不是 $2$ 的幂，使用多项式 `01M`。它按 $n=rm$ 做 Cooley-Tukey 分解，2 的幂子问题交给 `01A`；小因子或无法继续分解的大素因子回退朴素 DFT。因此“长度能整除 $P-1$”是必要条件，不能只把普通 NTT 的补零长度直接改成任意数。
+- 多项式 `01CB` 的拆系数浮点卷积代码短，但误差依赖长度、系数分布、编译器和浮点环境，不能对全 32 位对抗数据作无条件正确性承诺。
+- 多项式 `01AB`/`01FA` 使用三模 NTT。若每个输入先规范到 $[0,p)$，并满足三质数乘积严格大于 $\min(n,m)(p-1)^2$，CRT 代表元就是整数卷积真值，随后对 $p$ 取模是精确的。Library Checker 的 [`convolution_mod_1000000007`](https://judge.yosupo.jp/problem/convolution_mod_1000000007) 含专门的 FFT killer，极限数据选 `01FA`。
+- 多项式 `01A`、`01AA`、`01AB` 是同类不同环境的多项式实现，不可同时定义同名类型。
+- 二维卷积先对每一行、再对每一列做 NTT；两维补齐长度都必须整除 `P-1`，对应多项式 `01G`。它不能把普通一维卷积的线性下标直接复用，否则第二维会发生进位混叠。
+- 对形式幂级数，$f_0\ne0$ 才可求逆；$\ln f$ 要求常数项为 $1$，$\exp f$ 要求常数项为 $0$。平方根还要求首个非零项次数为偶数、首系数为二次剩余。多项式 `01K` 会检查这些前提。
+- `01K` 的 `ppow(f,e,n)` 适合普通非负整数 $e$；指数读成十进制串时改用 `01KA`。若 $f=x^t c(1+h)$ 且 $t>0$，先判断 $te\ge n$，成立则截断结果全为 $0$；否则用 $c^e\exp(e\ln(1+h))$ 并右移 $te$ 位。字符串指数中 $e$ 分别按模数和模数减一取余，不能直接读入 64 位整数。
+- Bostan-Mori 通过 $g(x)$ 与 $g(-x)$ 相乘后只保留偶/奇项，把所求 $[x^n]f/g$ 的下标折半，适合超大 $n$；对应多项式 `01H`。`01I` 的点值平移要求所有出现的连续横坐标在模意义下可逆，当前接口限制 `m>n` 且 `m+n<mod`，不要跨过模数直接调用。
+- Power Projection 的目标是 $h(i)=[x^N]f(x)g(x)^i$。`01L` 保留了截断到 $N$ 次的直接 NTT 迭代，适合 $n,N$ 至少一侧较小；两侧都很大时使用 `01LA`。后者固定 `998244353`、`n<mod` 与 $N+1\le2^{22}$，把二元消元和 NTT 排布合并为准线性分支，不能拿去替换任意模数版本。
+- 拉格朗日-Bürmann：若 $T(x)=x\Phi(T(x))$、$\Phi(0)\ne0$，则对 $n\ge1$ 有
+
+$$
+[x^n]H(T(x))=\frac1n[t^{n-1}]H'(t)\Phi(t)^n.
+$$
+
+特别地 $[x^n]T(x)^k=\dfrac{k}{n}[t^{n-k}]\Phi(t)^n$。移项后的 $T(x)=a+x\Phi(T(x))$ 先令 $U=T-a$；模意义下所有出现的分母必须可逆。
+- 单位根筛项：若域中有本原 $m$ 次根 $\omega$ 且 $m$ 可逆，则
+
+$$
+\sum_{q\ge0}a_{qm+r}x^{qm+r}
+=\frac1m\sum_{j=0}^{m-1}\omega^{-rj}A(\omega^jx).
+$$
+
+这可筛出次数 $\equiv r\pmod m$ 的项；$m=2$ 即偶、奇项拆分。模质数时通常要求 $m\mid p-1$，否则不能凭空构造所需单位根。
+- 稀疏分母 $f(x)$ 的幂级数除法可按系数递推，复杂度 $\mathcal O(nk)$，其中 $k$ 是非零项数；分母不稀疏时改用多项式 `01B` 的 NTT 求逆。对应多项式 `01J`。
+- Kirchhoff 矩阵树定理：无向图 Laplacian 的任意余子式行列式等于生成树数；平行边权累加，自环不贡献。对应 `05I`。
+- 单纯形 `05G` 只处理连续变量的 $\max c\cdot x,\ Ax\le b,\ x\ge0$；整数规划需要额外建模。
+
+#### 8. 博弈论与数值计算
+
+##### 8.1 Nim 与 SG
+
+以下结论只用于有限、无环、无偏游戏，并采用正常规则（无路可走者负）。
+
+- $P$ 态为后手必胜，$N$ 态为先手必胜；有 $P$ 后继的状态为 $N$，全部后继为 $N$ 的状态为 $P$。
+- Nim 的所有堆异或和为 $0$ 当且仅当为 $P$ 态。异或和为 $X\ne0$ 时，选择一堆 $a$ 变成 $a\oplus X<a$。
+- 反常 Nim 只有所有非空堆均为 $1$ 时例外：此时偶数堆先手胜；否则仍按普通 Nim 判断。
+- $\operatorname{sg}(x)=\operatorname{mex}\{\operatorname{sg}(y):x\to y\}$。独立子游戏的 $\textrm{SG}$ 值异或，异或为 $0$ 即 $P$ 态。拆分操作的后继值是各子局面的 $\textrm{SG}$ 异或。
+- Wythoff Nim 的必败态为 $(\lfloor k\phi\rfloor,\lfloor k\phi\rfloor+k)$，见博弈论 `01B`；极大整数范围要避免用浮点直接比较边界。
+- Bash 博弈每次取 $1\dots m$ 个时，$n$ 是 $m+1$ 的倍数恰为 $P$ 态；每次取 $[a,b]$ 时必须先明确“剩余不足 $a$ 个”如何判胜，不能机械套同一余数式。
+- Moore Nim 每次至多动 `k` 堆：把各堆逐位相加，所有位计数均为 `k+1` 的倍数时为 $P$ 态。阶梯 Nim 只异或奇数级台阶上的石子。
+- Anti-SG：若所有子局面 $\textrm{SG}$ 均不超过 `1`，总异或为 `0` 时先手胜；若至少一个 $\textrm{SG}$ 大于 `1`，总异或非 `0` 时先手胜。它与反常 Nim 的例外同源。
+- Lasker Nim（可取石子或把一堆拆成两堆）的单堆 SG：当 $x\bmod4=0$ 时为 $x-1$，当 $x\bmod4=3$ 时为 $x+1$，其余为 $x$。
+- 树上删边游戏的根状态为 `xor(sg(child)+1)`；无向图删边可用 Fusion Principle 把奇环缩成“一点一边”、偶环缩成一点，再化为树上模型。
+- Fibonacci Nim（首次不能全取，以后至多取上次两倍）当且仅当初始堆大小是 Fibonacci 数时为 $P$ 态；一般制胜取法来自 Zeckendorf 分解的最小项。
+
+##### 8.2 数值方法
+
+- 牛顿迭代 $x\leftarrow x-f(x)/f'(x)$ 在根附近且导数非零时收敛很快；初值差、重根或导数近零时应回退到二分。对应杂类 `04A`、`04D`。
+- 自适应辛普森适合平滑函数的定积分；间断、奇点和尖峰先手动分段，误差参数是近似控制而非无条件的严格全局界。对应杂类 `04B`。
+- 三分仅用于单峰或单谷目标；整数三分结束后必须枚举剩余区间。对应杂类 `04C`。
+
+#### 9. 典型例题的切入方式
+
+|题型|第一步与结论|常用模板|
+|---|---|---|
+|求 $x_i\in[0,k)$ 且和为 $m$ 的方案数|隔板法计无上界方案，再对 $x_i\ge k$ 容斥，使用第 3.2 节公式|`03A`、`04A` / `04B`|
+|把正整数拆成恰好 $k$ 个 $2$ 的幂|先验 $\operatorname{popcount}(n)\le k\le n$，再逐位拆分|杂类 `05A`|
+|最少加减多少使 $x$ 被 $k$ 整除|减去 $x\bmod k$；加上 $(k-x\bmod k)\bmod k$|`02H` / 基础取模|
+|删一个数使等和划分不可能|若原数组可等分，取 $v_2$ 最小的正元素删掉；其余数都多含一个 $2$ 因子，无法再平分|杂类 `05A`、子集和 DP|
+|大数能否写为两个给定互素面额的非负组合|先用 Frobenius 阈值判必然可行；小值再枚举或 DP|`02CA`、完全背包|
+|按素数和构造分组|给定范围内筛素数并实际验证分解；不以强哥德巴赫猜想作为证明|`01A` / `01G`|
+|矩形内互质点对、$\gcd$ 的和|把互质条件改写成 $\mu$ 的约数和，再做整除分块|`01EA`、`01EB`、`01EC`|
+|合法括号、栈排列、不过对角线格点路|检查是否是 Catalan 模型，再注意模除法前提|`03E`|
+|对称旋转、翻转后视为相同的染色方案|逐个群元素数不动点，再 Burnside 平均|`03M`|
+|高阶递推的巨大下标项|若递推已知用矩阵或 Kitamasa；若未知先 BM 恢复|`05A`、`03L`、`03LA`|
+
+这些结论的作用是缩短建模，不替代边界检查：组合数越界取 $0$、模除法先验可逆、位运算构造先验非负，以及所有计数对象是否带标号，都是最常见的失分点。
+
+#### 10. 几何公式与退化情形
+
+- 二维叉积 `cross(b-a,c-a)` 的符号判断转向，绝对值是平行四边形面积；多边形有向面积的两倍为 `sum cross(p[i],p[i+1])`。
+- 单调链凸包先排序去重。是否保留共线边界点必须在弹栈条件中统一；旋转卡壳要求凸包方向一致且不重复首点。
+- 两个凸多边形的闵可夫斯基和可按极角归并边向量；点集未成凸包时先做凸包。最近点对分治在按横坐标切分后按纵坐标归并，条带中每点只需检查常数个后继点。
+- 半平面交中每条有向直线保留左侧；平行同向直线只保留更严格者，反向冲突可能直接为空。
+- 圆的交点先比较圆心距与 `r1+r2`、`|r1-r2|`；重合圆有无穷多个交点，不能用“返回空”与不相交混为一谈。
+- 三维 $\operatorname{dot}(b-a,c-a)=0$ 表示垂直关系，$\operatorname{dot}(b-a,\operatorname{cross}(c-a,d-a))$ 是有向六倍四面体体积；所有距离公式的分母都要先排除退化直线或零法向量。
+- 整数坐标的叉积、平方距离可能超过 64 位时改用 `i128`；浮点几何则按题目尺度设置 EPS，不要直接沿用整数的 `==0`。
+
+#### 11. 大范围质数和与 Min_25
+
+`01K` 对所有不同的 $\lfloor n/i\rfloor$ 建立状态，先令 $g(x)=\sum_{k=2}^{x}k$，再依次删去最小质因子为当前质数的合数，最终得到 $\sum_{p\le x}p$。状态数只有 $\mathcal O(\sqrt{n})$。精确求和默认用 `i128`，因为初始三角和可能远大于最终质数和；模意义下直接把 `T` 换成 `MInt`。
+
+#### 12. 反射原理与幂式比较补遗
+
+- 从 `(0,0)` 每步走到 `(x+1,y±1)`，走 `a` 步到 `(a,b)` 的方案数是 `C(a,(a+b)/2)`；奇偶性不符或组合数下标越界时为 0。
+- 禁止碰到水平线 $y=k$ 时，把首次碰线后的路径反射，得到“总方案减去到镜像终点的方案”。同时限制上下两条线时可继续递归反射或用容斥/生成函数，不能只减一次。
+- 比较形如 $x^{y^z}$ 的正数时，不直接求幂。先比较其对数 $y^z\log x$；若这一层仍溢出，再比较 $z\log y+\log(\log x)$。底数为 $0$ 或 $1$、对数非正或指数为 $0$ 时必须单独分类。
+
+#### 13. 伯努利数与幂和
+
+这里约定 $B_1=-\frac12$。模板 `07A` 用 $\mathcal O(d^2)$ 递推预处理并直接求幂和；当只需要大阶数的整列伯努利数时，`07AA` 由
+$$
+  \frac{x}{e^x-1}=\left(\sum_{i\ge0}\frac{x^i}{(i+1)!}\right)^{-1}
+$$
+  通过 NTT 求逆，在 $\mathcal O(n\log n)$ 内得到 $B_0..B_n$。模意义下除以 `k+1` 前必须确认其可逆。
+
+$$
+\sum_{j=0}^{m}\binom{m+1}{j}B_j=0\quad(m\ge1),
+\qquad
+B_m(x)=\sum_{j=0}^{m}\binom mjB_jx^{m-j}.
+$$
+
+因此（这里采用 $B_1=-\frac12$，所以减去的是 $B_{k+1}(1)$）
+
+$$
+\sum_{i=1}^{n}i^k=\frac{B_{k+1}(n+1)-B_{k+1}(1)}{k+1}.
+$$
+
+模板构造时会多算 $B_{d+1}$；$n=0$ 的前缀和为 $0$，区间接口是从 $1$ 开始的闭区间。合数模下若 $k+1$ 不可逆，应改用整数公式、CRT 或分块。
+
+### 常见数列
+
+#### 调和级数
+
+满足调和级数 $\mathcal O\left( \dfrac{N}{1} +\dfrac{N}{2}+\dfrac{N}{3}+\dots + \dfrac{N}{N} \right)$，可以用 $ \approx N\ln N$ 来拟合，但是会略小，误差量级在 $10\%$ 左右。通常可以在 500 ms 内完成 $10^8$ 量级的预处理计算。
+
+|$N$的量级|1|2|3|4|5|6|7|8|9|
+|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|累加和|27|482|7’069|93‘668|1’166‘750|13‘970’034|162‘725’364|1‘857’511‘568|20’877‘697’634|
+
+下方示例为求解 $1$ 到 $N$ 中各个数字的因数值。
+
+```c++
+const int N = 1E5;
+vector<vector<int>> dic(N + 1);
+for (int i = 1; i <= N; i++) {
+    for (int j = i; j <= N; j += i) {
+        dic[j].push_back(i);
+    }
+}
+```
+
+#### 素数密度与分布
+
+|$N$的量级|1|2|3|4|5|6|7|8|9|
+|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|素数数量|4|25|168|1‘229|9’592|78‘498|664’579|5‘761’455|50‘847’534|
+
+除此之外，对于任意两个相邻的素数 $p_1,p_2 \le 10^9$ ，有 $|p_1-p_2|<300$ 成立，更具体的说，最大的差值为 $282$ 。
+
+#### 因数最多数字与其因数数量
+
+|$N$的量级|1|2|3|4|5|6|7|
+|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|因数最多数字的因数数量|4|25|32|64|128|240|448|
+|因数最多的数字|-|-|-|7560, 9240|83160, 98280|720720, 831600, 942480, 982800, 997920|-|
+
+### 组合数
+
+#### 质因数分解
+
+此法适用于：$1 \lt n, m, \textrm{MOD} \lt 10^7$ 的情况。
+
+```c++
+int n,m,p,b[10000005],prime[1000005],t,min_prime[10000005];
+void euler_Prime(int n){//用欧拉筛求出1~n中每个数的最小质因数的编号是多少，保存在min_prime中
+    for(int i=2;i<=n;i++){
+        if(b[i]==0){
+            prime[++t]=i;
+            min_prime[i]=t;
+        }
+        for(int j=1;j<=t&&i*prime[j]<=n;j++){
+            b[prime[j]*i]=1;
+            min_prime[prime[j]*i]=j;
+            if(i%prime[j]==0) break;
+        }
+    }
+}
+long long c(int n,int m,int p){//计算C(n,m)%p的值
+    euler_Prime(n);
+    int a[t+5];//t代表1~n中质数的个数 ，a[i]代表编号为i的质数在答案中出现的次数
+    for(int i=1;i<=t;i++) a[i]=0;//注意清0，一开始是随机数
+    for(int i=n;i>=n-m+1;i--){//处理分子
+        int x=i;
+        while (x!=1){
+            a[min_prime[x]]++;//注意min_prime中保存的是这个数的最小质因数的编号（1~t）
+            x/=prime[min_prime[x]];
+        }
+    }
+    for(int i=1;i<=m;i++){//处理分母
+        int x=i;
+        while (x!=1){
+            a[min_prime[x]]--;
+            x/=prime[min_prime[x]];
+        }
+    }
+    long long ans=1;
+    for(int i=1;i<=t;i++){//枚举质数的编号，看它出现了几次
+        while(a[i]>0){
+            ans=ans*prime[i]%p;
+            a[i]--;
+        }
+    }
+    return ans;
+}
+int main(){
+    cin>>n>>m;
+    m=min(m,n-m);//小优化
+    cout<<c(n,m,MOD);
+}
+```
+
+#### 杨辉三角（精确计算）
+
+$60$ 以内 `long long` 可解，$130$ 以内 `__int128` 可解。
+
+```c++
+vector C(n + 1, vector<int>(n + 1));
+C[0][0] = 1;
+for (int i = 1; i <= n; i++) {
+    C[i][0] = 1;
+    for (int j = 1; j <= n; j++) {
+        C[i][j] = C[i - 1][j] + C[i - 1][j - 1];
+    }
+}
+cout << C[n][m] << endl;
+```
+
+### 求解连续数字的正约数集合--倍数法
+
+使用规律递推优化，时间复杂度为 $\mathcal O(N\log N)$ ，如果不需要详细的输出集合，则直接将 `vector` 换为普通数组即可（时间更快） 。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 1e5 + 7;
+vector<int> f[N];
+
+void divide(int n) {
+    for (int i = 1; i <= n; ++ i)
+        for (int j = 1; j <= n / i; ++ j)
+            f[i * j].push_back(i);
+    for (int i = 1; i <= n; ++ i) {
+        for (auto it : f[i]) cout << it << " ";
+        cout << endl;
+    }
+}
+int main() {
+    int x; cin >> x; divide(x);
+    return 0;
+}
+```
+
+### 求解连续按位异或
+
+以 $\mathcal O(1)$ 复杂度计算 $0\oplus1\oplus\dots\oplus n$ 。
+
+```c++
+unsigned xor_n(unsigned n) {
+    unsigned t = n & 3;
+    if (t & 1) return t / 2u ^ 1;
+    return t / 2u ^ n;
+}
+```
+
+```c++
+i64 xor_n(i64 n) {
+    if (n % 4 == 1) return 1;
+    else if (n % 4 == 2) return n + 1;
+    else if (n % 4 == 3) return 0;
+    else return n;
+}
+```
+
+### 矩阵四则运算
+
+[封装来自](https://ac.nowcoder.com/acm/contest/view-submission?submissionId=48594258) 。矩阵乘法复杂度 $\mathcal O(N^3)$ 。
+
+```c++
+const int SIZE = 2;
+struct Matrix {
+    ll M[SIZE + 5][SIZE + 5];
+    void clear() { memset(M, 0, sizeof(M)); }
+    void reset() { //初始化
+        clear();
+        for (int i = 1; i <= SIZE; ++i) M[i][i] = 1;
+    }
+    Matrix friend operator*(const Matrix &A, const Matrix &B) {
+        Matrix Ans;
+        Ans.clear();
+        for (int i = 1; i <= SIZE; ++i)
+            for (int j = 1; j <= SIZE; ++j)
+                for (int k = 1; k <= SIZE; ++k)
+                    Ans.M[i][j] = (Ans.M[i][j] + A.M[i][k] * B.M[k][j]) % mod;
+        return Ans;
+    }
+    Matrix friend operator+(const Matrix &A, const Matrix &B) {
+        Matrix Ans;
+        Ans.clear();
+        for (int i = 1; i <= SIZE; ++i)
+            for (int j = 1; j <= SIZE; ++j)
+                Ans.M[i][j] = (A.M[i][j] + B.M[i][j]) % mod;
+        return Ans;
+    }
+};
+
+inline int mypow(LL n, LL k, int p = MOD) {
+    LL r = 1;
+    for (; k; k >>= 1, n = n * n % p) {
+        if (k & 1) r = r * n % p;
+    }
+    return r;
+}
+bool ok = 1;
+Matrix getinv(Matrix a) { //矩阵求逆
+    int n = SIZE, m = SIZE * 2;
+    for (int i = 1; i <= n; i++) a.M[i][i + n] = 1;
+    for (int i = 1; i <= n; i++) {
+        int pos = i;
+        for (int j = i + 1; j <= n; j++)
+            if (abs(a.M[j][i]) > abs(a.M[pos][i])) pos = j;
+        if (i != pos) swap(a.M[i], a.M[pos]);
+        if (!a.M[i][i]) {
+            puts("No Solution");
+            ok = 0;
+        }
+        ll inv = q_pow(a.M[i][i], mod - 2);
+        for (int j = 1; j <= n; j++)
+            if (j != i) {
+                ll mul = a.M[j][i] * inv % mod;
+                for (int k = i; k <= m; k++)
+                    a.M[j][k] = ((a.M[j][k] - a.M[i][k] * mul) % mod + mod) % mod;
+            }
+        for (int j = 1; j <= m; j++) a.M[i][j] = a.M[i][j] * inv % mod;
+    }
+    Matrix res;
+    res.clear();
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++) 
+            res.M[i][j] = a.M[i][n + j];
+    return res;
+}
+```
+
+### 矩阵加速
+
+```c++
+const int mod = 1e9 + 7;
+LL T, n, t[5][5], a[5][5], b[5][5];
+void matrixQp(LL y){
+    while (y){
+        if (y & 1){
+            memset(t, 0, sizeof t);
+            for (int i = 1; i <= 3; i ++ )
+                for (int j = 1; j <= 1; j ++ )
+                    for (int k = 1; k <= 3; k ++ )
+                        t[i][j] = ( t[i][j] + (a[i][k] * b[k][j]) % mod ) % mod;
+            memcpy(b, t, sizeof t);
+        }
+        y >>= 1;
+        memset(t, 0, sizeof t);
+        for (int i = 1; i <= 3; i ++ )
+            for (int j = 1; j <= 3; j ++ )
+                for (int k = 1; k <= 3; k ++ )
+                    t[i][j] = ( t[i][j] + (a[i][k] * a[k][j]) % mod ) % mod;
+        memcpy(a, t, sizeof t);
+    }
+}
+void init(){
+    b[1][1] = b[2][1] = b[3][1] = 1;
+    memset(a, 0, sizeof a);
+    a[1][1] = a[2][1] = a[1][3] = a[3][2] = 1;
+}
+void solve(){
+    cin >> n;
+    if (n <= 3) cout << "1\n";
+    else{
+        init();
+        matrixQp(n - 3);
+        cout << b[1][1] << "\n";
+    }
+}
+int main(){
+    cin >> T;
+    while ( T -- )
+        solve();
+    return 0;
+}
+
+```
+
+### 莫比乌斯函数/反演
+
+莫比乌斯函数定义：$\displaystyle {\mu(n) = \begin{cases} 1 &n = 1 \\ (-1)^k &n = \prod_{i = 1}^k p_i \textrm{ 且 } p_i \textrm{ 互质 } \\ 0 &else \end{cases}}$ 。
+
+> 莫比乌斯函数性质：对于任意正整数 $n$ 满足 $\displaystyle {\sum_{d|n}\mu(d) = \begin{cases} 1 & n = 1 \\ 0 & n \neq 1\end{cases}}$ ；$\displaystyle {\sum_{d|n} \frac{\mu(d)}{d} = \frac{\varphi(n)}{n}}$ 。 
+
+莫比乌斯反演定义：定义：$F(n)$ 和 $f(n)$ 是定义在非负整数集合上的两个函数，并且满足 $\displaystyle F(n) = \sum_{d|n}f(d)$ ，可得 $\displaystyle f(n) = \sum_{d|n}\mu(d)F(\left \lfloor \frac{n}{d} \right \rfloor)$ 。
+
+```c++
+const int N = 5e4 + 10;
+bool st[N];
+int mu[N], prime[N], cnt, sum[N];
+void getMu() {
+    mu[1] = 1;
+    for (int i = 2; i <= N - 10; i++) {
+        if (!st[i]) {
+            prime[++cnt] = i;
+            mu[i] = -1;
+        }
+        for (int j = 1; j <= cnt && i * prime[j] <= N - 10; j++) {
+            st[i * prime[j]] = true;
+            if (i % prime[j] == 0) {
+                mu[i * prime[j]] = 0;
+                break;
+            }
+            mu[i * prime[j]] = -mu[i];
+        }
+    }
+    for (int i = 1; i <= N - 10; i++) {
+        sum[i] = sum[i - 1] + mu[i];
+    }
+}
+void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    n = n / k, m = m / k;
+    if (n < m) swap(n, m);
+    LL ans = 0;
+    for (int i = 1, j = 0; i <= m; i = j + 1) {
+        j = min(n / (n / i), m / (m / i));
+        ans += (LL)(sum[j] - sum[i - 1]) * (n / i) * (m / i);
+    }
+    cout << ans << "\n";
+}
+int main() {
+    getMu();
+    int T; cin >> T;
+    while (T--) solve();
+}
+```
+
+### 整除（数论）分块
+
+$\displaystyle \left\lfloor \frac{n}{l} \right\rfloor = \left\lfloor \frac{n}{l + 1} \right\rfloor = ... = \left\lfloor \frac{n}{r} \right\rfloor \iff \left\lfloor \frac{n}{l} \right\rfloor \le \frac{n}{r} < \left\lfloor \frac{n}{l} \right\rfloor + 1$ ，根据不等式左侧，得到 $\displaystyle r \le \left\lfloor \frac{n}{\lfloor \frac{n}{l} \rfloor} \right\rfloor$ 。
+
+```c++
+void solve() {
+    LL n; cin >> n;
+    LL ans = 0;
+    for (LL i = 1, j; i <= n; i = j + 1) {
+        j = n / (n / i);
+        ans += (LL)(j - i + 1) * (n / i);
+    }
+    cout << ans << "\n";
+}
+int main() {
+    int T; cin >> T;
+    while (T--) solve();
+}
+```
+
+### 常见例题
+
+题意：将 $1$ 至 $N$ 的每个数字分组，使得每一组的数字之和均为质数。输出每一个数字所在的组别，且要求分出的组数最少 [See](https://codeforces.com/contest/45/problem/G) 。
+
+考察哥德巴赫猜想，记全部数字之和为 $S$ ，分类讨论如下：
+
+- 为 $S$ 质数时，只需要分入同一组；
+- 当 $S$ 为偶数时，由猜想可知一定能分成两个质数，可以证明其中较小的那个一定小于 $N$ ，暴力枚举分组；
+- 当 $S-2$ 为质数时，特殊判断出答案；
+- 其余情况一定能被分成三组，其中 $3$ 单独成组，$S-3$ 后成为偶数，重复讨论二的过程即可。
+
+***
+
+题意：给定一个长度为 $n$ 的数组，定义这个数组是 $\textrm{BAD}$ 的，当且仅当可以把数组分成两个子序列，这两个子序列的元素之和相等。现在你需要删除**最少的**元素，使得删除后的数组不是 $\textrm{BAD}$ 的。
+
+**最少删除一个元素**--如果原数组存在奇数，则直接删除这个奇数即可；反之，我们发现，对数列同除以一个数不影响计算，故我们只需要找到最大的满足 $2^k\mid a_i$ 成立的 $2^k$ ，随后将全部的 $a_i$ 变为 $\dfrac{a_i}{2^k}$ ，此时一定有一个奇数（换句话说，我们可以对原数列的每一个元素不断的除以 $2$ 直到出现奇数为止），删除这个奇数即可 [See](https://codeforces.com/contest/1516/problem/C) 。
+
+***
+
+题意：设当前有一个数字为 $x$ ，减去、加上最少的数字使得其能被 $k$ 整除。
+
+最少减去 $x\bmod k$ 这个很好想；最少加上 $\left(\left\lceil\dfrac{x}{k}\right\rceil * k\right)\bmod k$ 也比较好想，但是更简便的方法为加上 $k-x\bmod k$ ，这个式子等价于前面这一坨。
+
+***
+
+题意：给定一个整数 $n$ ，用恰好 $k$ 个 $2$ 的幂次数之和表示它。例如：$n=9,k=4$ ，答案为 $1+2+2+4$ 。
+
+结论1：$k$ 合法当且仅当 $\operatorname{popcount}(n)\le k\le n$，显然。
+
+结论2：$2^{k+1}=2\cdot2^{k}$ ，所以我们可以将二进制位看作是数组，然后从高位向低位推，一个高位等于两个低位，直到数组之和恰好等于 $k$ ，随后依次输出即可。举例说明，$\{ 1,0,0,1\} \rightarrow \{ 0,2,0,1\} \rightarrow \{ 0,1,2,1\}$ ，即答案为 $0$ 个 $2^3$ 、$1$ 个 $2^2$ 、……。
+
+```c++
+signed main() {
+    int n, k;
+    cin >> n >> k;
+    
+    int cnt = __builtin_popcountll(n);
+    
+    if (k < cnt || n < k) {
+        cout << "NO\n";
+        return 0;
+    }
+    cout << "YES\n";
+    
+    vector<int> num;
+    while (n) {
+        num.push_back(n % 2);
+        n /= 2;
+    }
+    
+    for (int i = num.size() - 1; i > 0; i--) {
+        int p = min(k - cnt, num[i]);
+        num[i] -= p;
+        num[i - 1] += 2 * p;
+        cnt += p;
+    }
+    
+    for (int i = 0; i < num.size(); i++) {
+        for (int j = 1; j <= num[i]; j++) {
+            cout << (1LL << i) << " ";
+        }
+    }
+}
+```
+
+***
+
+题意：$n$ 个取值在 $[0,k)$ 之间的数之和为 $m$ 的方案数
+
+答案为 $\displaystyle \sum^n_{i=0}-1^i\cdot\binom{n}{i}\cdot\binom{m-i\cdot k+n-1}{n-1}$ [See1](http://acm.hdu.edu.cn/showproblem.php?pid=6397) [See2](https://codeforces.com/gym/103428/problem/M)。
+
+```c++
+ Z clac(int n, int k, int m) {
+    Z ans = 0; 
+        ans += C(n, i) * C(m - i * k + n - 1, n - 1) * pow(-1, i);
+    }
+    return ans;
+}
+```
+
+$^1$ 先考虑没有 $k$ 的限制，那么即球盒模型：$m$ 个球放入 $n$ 个盒子，球同、盒子不同、能空。使用隔板法得到公式：`C(m + n - 1, n - 1)` ；$^2$ 下面加上取值范围后进一步考虑：假设现在 $n$ 个数之和为 $m-k$ ，运用上述隔板法可得公式：`C(m - k + n - 1, n - 1)` ；$^3$ 随后，选择任意一个数字，将其加上 $k$ ，这样，这个数字一定不满足条件，选法为：`C(n, 1)` ；$^4$ 此时，至少有一个数字是不满足条件的，按照一般流程，到这里，`C(m + n - 1, n - 1) - C(n, 1) * C(m - k + n - 1, n - 1)` 即是答案；但是，这样的操作会导致重复的部分，所以这里要使用容斥原理将重复部分去除（关于为什么会重复，试比较概率论中的加法公式）。
+### 常见结论
+
+#### 球盒模型
+
+[参考链接](https://www.cnblogs.com/BobHuang/p/14979765.html)。给定 $n$ 个小球 $m$ 个盒子。
+
+- 球同，盒不同、不能空
+
+> 隔板法： $N$ 个小球即一共 $N-1$ 个空，分成 $M$ 堆即 $M-1$ 个隔板，答案为 $\dbinom{n-1}{m-1}$ 。
+
+- 球同，盒不同、能空
+
+> 隔板法：多出 $M-1$ 个虚空球，答案为 $\dbinom{m-1+n}{n}$ 。
+
+- 球同，盒同、能空
+
+> $\dfrac{1}{(1-x)(1-x^2)\dots(1-x^m)}$ 的 $x^n$ 项的系数。动态规划，答案为 
+> 
+$$
+\textrm{dp}[i][j]=
+\left\{\begin{matrix}
+\textrm{dp}[i][j-1]+\textrm{dp}[i-j][j]     & i\geq j  \\ 
+\textrm{dp}[i][j-1]                         & i \lt j   \\ 
+1                                             & j==1 \ || \ i \leq 1
+\end{matrix}\right.
+$$
+
+- 球同，盒同、不能空
+
+> $\dfrac{x^m}{(1-x)(1-x^2)\dots(1-x^m)}$ 的 $x^n$ 项的系数。动态规划，答案为 
+> 
+$$
+\textrm{dp}[n][m]=
+\left\{\begin{matrix}
+\textrm{dp}[n-m][m]     & n\ge m  \\ 
+0                            & n \lt m   \\ 
+\end{matrix}\right.
+$$
+
+- 球不同，盒同、不能空
+
+> 第二类斯特林数 $\textrm{Stirling2}(n,m)$ ，答案为 
+> 
+$$
+\textrm{dp}[n][m]=
+\left\{\begin{matrix}
+m\cdot\textrm{dp}[n-1][m]+\textrm{dp}[n-1][m-1] & 1 \le m \lt n\\ 
+1 & 0 \le n == m\\ 
+0 & m == 0 且 1 \le n
+\end{matrix}\right.
+$$
+
+- 球不同，盒同、能空
+
+> 第二类斯特林数之和 $\displaystyle\sum_{i=1}^m\textrm{Stirling2}(n,m)$ ，答案为 $\sum_{i=0}^{m}\textrm{dp}[n][i]$ 。
+
+- 球不同，盒不同、不能空
+
+> 第二类斯特林数乘上 $m$ 的阶乘 $m!\cdot\textrm{Stirling2}(n,m)$ ，答案为 $\textrm{dp}[n][m]\cdot m!$ 。
+
+- 球不同，盒不同、能空
+
+> 答案为 $m^n$ 。
+
+```c++
+i64 mypow(i64 n, i64 k) { // 复杂度是 log N
+    i64 r = 1;
+    for (; k; k >>= 1, n *= n) {
+        if (k & 1) r *= n;
+    }
+    return r;
+}
+ 
+vector<vector<i64>> comb;
+void YangHuiTriangle(int n = 60) {
+    comb.resize(n + 1, vector<i64>(n + 1));
+    comb[0][0] = 1;
+    for (int i = 1; i <= n; i++) {
+        comb[i][0] = 1;
+        for (int j = 1; j <= n; j++) {
+            comb[i][j] = comb[i - 1][j] + comb[i - 1][j - 1];
+        }
+    }
+}
+ 
+vector<vector<i64>> S;
+void Stirling2(int n = 15) {
+    S.resize(n + 1, vector<i64>(n + 1));
+    S[1][1] = 1;
+    for (int i = 2; i <= 15; i++) {
+        for (int j = 1; j <= i; j++) {
+            S[i][j] = S[i - 1][j - 1] + S[i - 1][j] * j;
+        }
+    }
+}
+ 
+vector<vector<i64>> dp;
+void GeneratingFunction(int n = 15) {
+    dp.resize(n + 1, vector<i64>(n + 1));
+    for (int i = 0; i <= n; i++) {
+        dp[i][1] = 1;
+        for (int j = 2; j <= n; j++) {
+            dp[i][j] = dp[i][j - 1];
+            if (i >= j) dp[i][j] += dp[i - j][j];
+        }
+    }
+}
+ 
+vector<i64> fac;
+void Fac(int n = 30) {
+    fac.resize(n + 1);
+    fac[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        fac[i] = fac[i - 1] * i;
+    }
+}
+ 
+i64 A(int n, int m) {
+    if (n < 0 || m < 0 || n < m) return 0;
+    return fac[n] / fac[n - m];
+}
+ 
+i64 C(int n, int m) {
+    if (n < 0 || m < 0 || n < m) return 0;
+    return comb[n][m];
+}
+ 
+signed main() {
+    int Task = 1;
+    for (cin >> Task; Task; Task--) {
+        int op, n, m;
+        cin >> op >> n >> m;
+ 
+        i64 ans = -1;
+        if (op == 1) { // 球同，盒同、能空
+            ans = dp[n][m];
+        } else if (op == 2) { // 球同，盒同、至多放一个
+            ans = (n <= m);
+        } else if (op == 3) { // 球同，盒同、至少放一个
+            ans = (n < m ? 0 : dp[n - m][m]);
+        } else if (op == 4) { // 球同，盒不同、能空
+            ans = C(m - 1 + n, n);
+        } else if (op == 5) { // 球同，盒不同、至多放一个
+            ans = C(m, n);
+        } else if (op == 6) { // 球同，盒不同、至少放一个
+            ans = C(n - 1, m - 1);
+        } else if (op == 7) { // 球不同，盒同、能空
+            ans = accumulate(S[n].begin() + 1, S[n].begin() + m + 1, 0LL);
+        } else if (op == 8) { // 球不同，盒同、至多放一个
+            ans = (n <= m);
+        } else if (op == 9) { // 球不同，盒同、至少放一个
+            ans = S[n][m];
+        } else if (op == 10) { // 球不同，盒不同、能空
+            ans = mypow(m, n);
+        } else if (op == 11) { // 球不同，盒不同、至多放一个
+            ans = A(m, n);
+        } else if (op == 12) { // 球不同，盒不同、至少放一个
+            ans = fac[m] * S[n][m];
+        }
+        cout << ans << "\n";
+    }
+}
+```
+
+#### 麦乐鸡定理
+
+给定两个互质的数 $n,m$ ，定义 $x=a*n+b*m（a \ge 0,b \ge 0）$，当 $x > n*m-n-m$ 时，该式子恒成立。
+
+#### 抽屉原理（鸽巢原理）
+
+将 $n+1$ 个物体，划分为 $n$ 组，那么有至少一组有两个（或以上）的物体。
+
+#### 哥德巴赫猜想
+
+任何一个大于 $5$ 的整数都可写成三个质数之和；任何一个大于 $2$ 的偶数都可写成两个素数之和。
+
+#### 除法、取模运算的本质
+
+有公式：$x \div i=\left\lfloor\dfrac{x}{i}\right\rfloor+x-i\cdot \left\lfloor\dfrac{x}{i}\right\rfloor$ ，$x \mod i=x-i\cdot \left\lfloor\dfrac{x}{i}\right\rfloor$ 。
+
+#### 与、或、异或
+
+|运算|运算符、数学符号表示|解释|
+|:--:|:--:|:--:|
+|与|`&`、`and`|同1出1|
+|或|`\|`、`or`|有1出1|
+|异或|`^`、$\bigoplus$、`xor`|不同出1|
+
+一些结论：
+
+> 对于给定的 $X$ 和序列 $[a_1,a_2,…,a_n]$ ，有：$X=(X \&a_1)or(X\&a_2)or…or(X\&a_n)$ 。
+原理是 $and$ 意味着取交集，$or$ 意味着取子集。[例题链接](https://ac.nowcoder.com/acm/contest/11226/C)
+
+#### 调和级数近似公式
+
+```c++
+log(n) + 0.5772156649 + 1.0 / (2 * n)
+```
+
+#### 欧拉函数常见性质
+
+- $1-n$ 中与 $n$ 互质的数之和为 $n * \varphi(n) / 2$ 。
+- 若 $a，b$ 互质，则 $\varphi (a*b) = \varphi (a) * \varphi(b)$ 。实际上，所有满足这一条件的函数统称为积性函数。    
+- 若 $f$ 是积性函数，且有 $\displaystyle n = \prod ^m _{i =1} p_i ^ {c_i}$ ，那么 $\displaystyle f(n) = \prod ^m _{i =1} f( p_i ^ {c_i} )$ 。
+- 若 $p$ 为质数，且满足 $p \mid  n$ ，
+  - $p^2 \mid n$ ，那么 $\varphi (n) = \varphi (n / p) * p$ 。
+  - $p^2 \nmid n$，那么 $\varphi (n) = \varphi (n / p) * (p-1)$ 。
+- $\displaystyle\sum _{d \mid n} \varphi (d)= n$ 。
+  > 如 $n=10$ ，则 $d=10/5/2/1$ ，那么 $10 = \varphi(10) + \varphi(5) + \varphi(2) + \varphi(1)$ 。
+- $\displaystyle\sum_{i = 1}^{n} \gcd(i, n) = \sum_{d|n} \left\lfloor \frac{n}{d} \right\rfloor \varphi(d)$ （欧拉反演）。
+
+#### 组合数学常见性质
+
+- $k *C^k_n=n*C^{k-1}_{n-1}$ ；
+- $C_k^n*C_m^k=C_m^n*C_{m-n}^{m-k}$ ；
+- $C_n^k+C_n^{k+1}=C_{n+1}^{k+1}$ ；
+- $\sum_{i=0}^n C_n^i=2^n$ ；
+- $\sum_{k=0}^n(-1)^k*C_n^k=0$ 。
+- 二项式反演：$\left\{\begin{matrix} \displaystyle f_n=\sum_{i=0}^n{n\choose i}g_i\Leftrightarrow g_n=\sum_{i=0}^n(-1)^{n-i}{n\choose i}f_i \\ 
+\displaystyle f_k=\sum_{i=k}^n{i\choose k}g_i\Leftrightarrow g_k=\sum_{i=k}^n(-1)^{i-k}{i\choose k}f_i \end{matrix}\right. $ ；
+- $\displaystyle \sum_{i=1}^{n}i{n\choose i}=n * 2^{n-1}$ ；
+- $\displaystyle \sum_{i=1}^{n}i^2{n\choose i}=n*(n+1)*2^{n-2}$ ；
+- $\displaystyle \sum_{i=1}^{n}\dfrac{1}{i}{n\choose i}=\sum_{i=1}^{n}\dfrac{1}{i}$ ；
+- $\displaystyle \sum_{i=0}^{n}{n\choose i}^2={2n\choose n}$ ；
+- 拉格朗日恒等式：$\displaystyle \sum_{i=1}^{n}\sum_{j=i+1}^{n}(a_ib_j-a_jb_i)^2=(\sum_{i=1}^{n}a_i)^2(\sum_{i=1}^{n}b_i)^2-(\sum_{i=1}^{n}a_ib_i)^2$ 。
+
+#### 范德蒙德卷积公式
+
+在数量为 $n+m$ 的堆中选 $k$ 个元素，和分别在数量为 $n、m$ 的堆中选 $i、k-i$ 个元素的方案数是相同的，即$\displaystyle{\sum_{i=0}^k\binom{n}{i}\binom{m}{k-i}=\binom{n+m}{k}}$ ；
+
+变体：
+
+- $\sum_{i=0}^k C_{i+n}^{i}=C_{k+n+1}^{k}$ ；
+- $\sum_{i=0}^k C_{n}^{i}*C_m^i=\sum_{i=0}^k C_{n}^{i}*C_m^{m-i}=C_{n+m}^{n}$ 。
+
+#### 卡特兰数
+
+是一类奇特的组合数，前几项为 $1,1,2,5,14,42,132,429,1430,4862$ 。如遇到以下问题，则直接套用即可。
+
+- 【括号匹配问题】 $n$ 个左括号和 $n$ 个右括号组成的合法括号序列的数量，为 $\textrm{Cat}_n$ 。
+- 【进出栈问题】 $1,2,…,n$ 经过一个栈，形成的合法出栈序列的数量，为 $\textrm{Cat}_n$ 。
+- 【二叉树生成问题】 $n$ 个节点构成的不同二叉树的数量，为 $\textrm{Cat}_n$ 。
+- 【路径数量问题】在平面直角坐标系上，每一步只能**向上**或**向右**走，从 $(0,0)$ 走到 $(n,n)$ ，并且除两个端点外不接触直线 $y=x$ 的路线数量，为 $2Cat_{n-1}$ 。
+
+计算公式：$\textrm{Cat}_n=\dfrac{C^n_{2n}}{n+1}$ ，$C_n=\dfrac{C_{n-1}*(4n-2)}{n+1}$ 。
+
+#### 狄利克雷卷积
+
+$\displaystyle \sum_{d | n} \varphi(d) = n$ ，$\displaystyle \sum_{d|n} \mu(d) \frac{n}{d} = \varphi(n)$ 。
+
+#### 斐波那契数列
+
+通项公式：$F_n=\dfrac{1}{\sqrt 5}*  \Big[ \Big( \dfrac{1+\sqrt 5}{2} \Big)^n - \Big( \dfrac{1-\sqrt 5}{2} \Big)^n \Big]$ 。
+
+直接结论：
+
+- 卡西尼性质：$F_{n-1} * F_{n+1}-F_n^2=(-1)^n$ ；
+- $F_{n}^2+F_{n+1}^2=F_{2n+1}$ ；
+- $F_{n+1}^2-F_{n-1}^2=F_{2n}$ （由上一条写两遍相减得到）；
+- 若存在序列 $a_0=1,a_n=a_{n-1}+a_{n-3}+a_{n-5}+...(n\ge 1)$ 则 $a_n=F_n(n\ge 1)$ ；
+- 齐肯多夫定理：任何正整数都可以表示成若干个不连续的斐波那契数（ $F_2$ 开始）可以用贪心实现。
+
+求和公式结论：
+
+- 奇数项求和：$F_1+F_3+F_5+...+F_{2n-1}=F_{2n}$ ；
+- 偶数项求和：$F_2+F_4+F_6+...+F_{2n}=F_{2n+1}-1$ ；
+- 平方和：$F_1^2+F_2^2+F_3^2+...+F_n^2=F_n*F_{n+1}$ ；
+- $F_1+2F_2+3F_3+...+nF_n=nF_{n+2}-F_{n+3}+2$ ；
+- $-F_1+F_2-F_3+...+(-1)^nF_n=(-1)^n(F_{n+1}-F_n)+1$ ；
+- $F_{2n-2m-2}(F_{2n}+F_{2n+2})=F_{2m+2}+F_{4n-2m}$ 。
+
+数论结论：
+
+- $F_a \mid F_b \Leftrightarrow a \mid b$ ；
+- $\gcd(F_a,F_b)=F_{\gcd(a,b)}$ ；
+- 当 $p$ 为 $5k\pm 1$ 型素数时，$\begin{cases} F_{p-1}\equiv 0\pmod p \\ F_p\equiv 1\pmod p \\ F_{p+1}\equiv 1\pmod p \end{cases}$ ；
+- 当 $p$ 为 $5k\pm 2$ 型素数时，$\begin{cases} F_{p-1}\equiv 1\pmod p \\ F_p\equiv -1\pmod p \\ F_{p+1}\equiv 0\pmod p \end{cases}$ ；
+- $F(n)\%m$ 的周期 $\le 6m$ （ $m=2\times 5^k$ 时取到等号）；
+- 既是斐波那契数又是平方数的有且仅有 $1,144$ 。
+
+#### 杂
+
+- 负数取模得到的是负数，如果要用 $0/1$ 判断的话请取绝对值；
+- 辗转相除法原式为 $\gcd (x,y)=\gcd (x,y-x)$ ，推广到 $N$ 项为 $\gcd(a_1,a_2,\ldots,a_N)=\gcd(a_1,a_2-a_1,\dots,a_N-a_{N-1})$ ，
+  - 该推论在“四则运算后 $\gcd$ ”这类题中有特殊意义，如求解 $\gcd(a_1+X,a_2+X,\dots,a_N+X)$ 时[See](https://codeforces.com/problemset/problem/1458/A)；
+- 以下式子成立： $\gcd (a, m) = \gcd(a+x,m) \Leftrightarrow  \gcd(a, m)=\gcd(x,m)$ 。求解上式满足条件的 $x$ 的数量即为求比 $\dfrac{m}{\gcd(a,m)}$ 小且与其互质的数的个数，即用欧拉函数求解 $\varphi \Big(\dfrac{m}{\gcd(a,m)} \Big)$ 。
+- 已知序列 $a$ ，定义集合 $S=\{a_i\cdot a_j \ \vert\  i<j\}$ ，现在要求解 $\gcd(S)$ ，即为求解 $\gcd(a_j,\gcd(a_i \ \vert\ i<j))$ ，换句话说，即为求解后缀 $\gcd$ 。
+- 连续四个数互质的情况如下，当 $n$ 为奇数时，$n,n-1,n-2$ 一定互质；而当 $n$ 为偶数时，$\left\{\begin{matrix}n,n-1,n-3 \textrm{互质}& \gcd(n,n-3)=1\textrm{时}\\ 
+n-1,n-2,n-3 \textrm{互质}& \gcd(n,n-3)\neq1\textrm{时}
+\end{matrix}\right.$ [See](https://codeforces.com/problemset/problem/235/A)；
+- 由 $a\mod b=(b+a)\mod b=(2\cdot b+a)\mod b=\dots=(K\cdot b+a)\mod b$ 可以推广得到 $(a\mod b)\mod c=((K\cdot bc+a)\mod b)\mod c$ ，由此可以得到一个 $bc$ 的答案周期[See](https://codeforces.com/problemset/problem/1342/C)；
+- 对于长度为 $2\cdot N$ 的数列 $a$ ，将其任意均分为两个长度为 $N$ 的数列 $p,q$ ，随后对 $p$ 非递减排序、对 $q$ 非递增排序，定义 $\displaystyle f(p,q)=\sum_{i=1}^{n}|p_i-q_i|$ ，那么答案为 $a$ 数列前 $N$ 大的数之和减去前 $N$ 小的数之和[See](https://codeforces.com/problemset/problem/1444/B)。
+- 令 $\left\{\begin{matrix} X=a+b\\ 
+  Y=a\oplus b
+  \end{matrix}\right.$ ，**如果**该式子**有解**，那么存在前提条件 $\left\{\begin{matrix} X \ge Y \\ 
+  X,Y \textrm{同奇偶}
+  \end{matrix}\right.$ ；进一步，此时最小的 $a$ 的取值为 $\dfrac{X-Y}{2}$ [See](https://codeforces.com/problemset/problem/76/D)。
+  
+  然而，上方方程并不总是有解的，只有当变量增加到三个时，才**一定有解**，即：**在保证上方前提条件成立的情况下**，求解 $\left\{\begin{matrix} X=a+b+c\\Y=a\oplus b\oplus c\end{matrix}\right.$ ，则一定存在一组解 $\{\dfrac{X-Y}{2},\dfrac{X-Y}{2},Y\}$ [See](https://codeforces.com/problemset/problem/1325/D)。
+- 已知序列 $p$ 是由序列 $a_1$ 、序列 $a_2$ 、……、序列 $a_n$ 合并而成，且合并过程中各序列内元素相对顺序不变，记 $T(p)$ 是 $p$ 序列的最大前缀和，则 $\displaystyle T(p)=\sum_{i=1}^nT(a_i)$ [See](https://codeforces.com/problemset/problem/1469/B) 。
+- $x+y=x|y+x\&y$ ，对于两个数字 $x$ 和 $y$ ，如果将 $x$ 变为 $x|y$ ，同时将 $y$ 变为 $x\&y$ ，那么在本质上即将 $x$ 二进制模式下的全部 $1$ 移动到了 $y$ 的对应的位置上 [See](https://codeforces.com/contest/1368/problem/D) 。
+- 一个正整数 $x$ 异或、加上另一个正整数 $y$ 后奇偶性不发生变化：$a+b\equiv a\oplus b(\bmod2)$ [See](https://codeforces.com/contest/1634/problem/B) 。
+
+<div style="page-break-after:always">/END/</div>

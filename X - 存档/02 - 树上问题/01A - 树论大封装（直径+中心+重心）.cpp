@@ -1,12 +1,14 @@
 struct Tree {
     int n;
-    vector<vector<pair<int, int>>> g;
+    vector<vector<pii>> g;
     vector<int> dep, fa, mxd, d1, d2, up, s1, s2;
     Tree(int n) : n(n), g(n + 1), dep(n + 1), fa(n + 1), mxd(n + 1), d1(n + 1), d2(n + 1), up(n + 1), s1(n + 1), s2(n + 1) {}
+
     void add(int u, int v, int w = 1) {
         g[u].push_back({v, w});
         g[v].push_back({u, w});
     }
+
     void dfs(int u, int _fa) {
         mxd[u] = dep[u];
         for (auto [v, w] : g[u]) {
