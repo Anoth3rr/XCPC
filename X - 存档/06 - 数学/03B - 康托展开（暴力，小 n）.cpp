@@ -3,7 +3,7 @@
 复杂度：O(n^2)，int 精确范围 n <= 20。大 n 且只需模意义排名时使用 03C。
 */
 struct Cantor {
-    static void check(const vector<int>& p) {
+    static void check(const vector<int> &p) {
         int n = p.size();
         vector<char> vis(n + 1, false);
         for (int val : p) {
@@ -12,7 +12,7 @@ struct Cantor {
         }
     }
 
-    static int askRank(const vector<int>& p) {
+    static int askRank(const vector<int> &p) {
         int n = p.size();
         assert(n <= 20);
         check(p);
