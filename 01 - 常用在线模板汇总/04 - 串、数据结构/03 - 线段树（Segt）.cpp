@@ -9,7 +9,7 @@ template <class T> struct Tag {
 
 template <class T> struct Info {
     T sum{};
-    int len{};
+    int l{}, r{};
 
     Info() = default;
     Info(T v, int len = 1) : sum(v), len(len) {}
@@ -24,13 +24,26 @@ template <class T> struct Info {
     }
 };
 
-template <class Info, class Tag> struct SegTree {
+template <class T> struct SegTree {
     int n;
-    vector<Info> tr;
-    vector<Tag> tag;
-    vector<char> has;
+    vector<Info<T>> tr;
+    vector<Tag<T>> tag;
+    vector<bool> f;
 
-    SegTree(int n) : n(n), tr(4 * n + 5), tag(4 * n + 5), has(4 * n + 5) {}
+    SegTree(int n) : n(n), tr(4 * n + 5), tag(4 * n + 5), f(4 * n + 5) {}
+
+    template <class Array> void build(int p, int l, int r, const Array &a) {
+        if (l == r) {
+            tr[p] = a[l];
+            tr[p].l = tr[p].r = l;
+            f[p] = ;
+            return;
+        }
+        int m = (l + r) >> 1;
+        build(p << 1, l, m, a);
+        build(p << 1 | 1, m + 1, r, a);
+        pull(p);
+    }
 
     void pull(int p) {
         tr[p] = tr[p << 1] + tr[p << 1 | 1];

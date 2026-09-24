@@ -11,7 +11,9 @@ using namespace std;
     #define _(...) true
 #endif
 
-void solve() {}
+void solve() {
+    
+}
 
 signed main() {
     ios::sync_with_stdio(0), cin.tie(0);
