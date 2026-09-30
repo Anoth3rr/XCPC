@@ -1,8 +1,4 @@
-/*
-用途：求最短递推 a[t] = sum c[i] a[t-1-i]。
-前提：Z 为域；返回的系数可直接交给 03KA。
-*/
-template <class Z> vector<Z> BM(const vector<Z>& a) {
+template <class Z> vector<Z> BM(const vector<Z> &a) {
     vector<Z> c{Z(1)}, b{Z(1)};
     int l = 0, m = 1;
     Z d = 1;

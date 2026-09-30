@@ -1,7 +1,6 @@
-
 struct FFT {
     using cd = Complex<double>;
-    static constexpr double PI = 3.141592653589793238462643383279502884;
+    static constexpr double PI = acos(-1.0L);
 
     void fft(vector<cd> &a, bool inv) {
         int n = a.size();

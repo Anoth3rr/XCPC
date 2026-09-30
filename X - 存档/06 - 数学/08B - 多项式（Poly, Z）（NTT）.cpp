@@ -9,7 +9,7 @@ template <class Z, int G = 3> struct Poly {
         for (int i = 0; i < n; ++i)
             if (i < rv[i]) swap(a[i], a[rv[i]]);
         for (int len = 2; len <= n; len <<= 1) {
-            Z wn = mypow(Z(G), (Z::askMod() - 1) / len);
+            Z wn = power(Z(G), (Z::getMod() - 1) / len);
             if (iv) wn = wn.inv();
             for (int i = 0; i < n; i += len) {
                 Z w = 1;
@@ -29,16 +29,14 @@ template <class Z, int G = 3> struct Poly {
 
     static vector<Z> add(vector<Z> a, vector<Z> b) {
         int n = max(a.size(), b.size());
-        a.resize(n);
-        b.resize(n);
+        a.resize(n), b.resize(n);
         for (int i = 0; i < n; ++i) a[i] += b[i];
         return a;
     }
 
     static vector<Z> sub(vector<Z> a, vector<Z> b) {
         int n = max(a.size(), b.size());
-        a.resize(n);
-        b.resize(n);
+        a.resize(n), b.resize(n);
         for (int i = 0; i < n; ++i) a[i] -= b[i];
         return a;
     }
@@ -47,10 +45,8 @@ template <class Z, int G = 3> struct Poly {
         if (a.empty() || b.empty()) return {};
         int m = a.size() + b.size() - 1, n = 1;
         while (n < m) n <<= 1;
-        a.resize(n);
-        b.resize(n);
-        ntt(a, false);
-        ntt(b, false);
+        a.resize(n), b.resize(n);
+        ntt(a, false), ntt(b, false);
         for (int i = 0; i < n; ++i) a[i] *= b[i];
         ntt(a, true);
         a.resize(m);
@@ -66,10 +62,8 @@ template <class Z, int G = 3> struct Poly {
         int m = 1;
         while (m < n << 1) m <<= 1;
         vector<Z> c(a.begin(), a.begin() + min<int>(a.size(), n));
-        c.resize(m);
-        b.resize(m);
-        ntt(c, false);
-        ntt(b, false);
+        c.resize(m), b.resize(m);
+        ntt(c, false), ntt(b, false);
         for (int i = 0; i < m; ++i) b[i] *= Z(2) - c[i] * b[i];
         ntt(b, true);
         b.resize(n);
