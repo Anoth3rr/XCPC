@@ -198,6 +198,17 @@ tuple<string, int, int> Student = {"Wida", 23, 45000);
 cout << get<0>(Student) << endl; //获取Student对象中的第一个元素，这里的输出结果应为“Wida”
 ```
 
+##### 解对象
+
+可以使用 `tie` 函数将解得的变量赋值给已声明的变量。
+
+```
+int x, y;
+if (<case A>) tie(x, y) = solve1(a, b);
+else tie(x, y) = solve2(a, b);
+// 等价于 auto [X, Y] = solve(...); x = X, y = Y;
+```
+
 #### 数组 array
 
 ```c++
@@ -210,7 +221,7 @@ cout << x[0]; // 获取数组重的第一个元素
 #### 变长数组 vector
 
 ```c++
-resize(n) // 重设容器大小，但是不改变已有元素的值
+resize(n, <x>) // 重设容器大小，但是不改变已有元素的值，将新增的部分赋值为 x
 assign(n, 0) // 重设容器大小为n，且替换容器内的内容为0
 
 // 尽量不要使用[]的形式声明多维变长数组，而是使用嵌套的方式替代
@@ -224,7 +235,7 @@ vector dis(m + 1, vector(n + 1, vector<int>(n + 1)));
 
 #### 栈  stack
 
-栈顶入，栈顶出。先进后出。
+栈顶入，栈顶出。先进后出。基于 `deque` 实现，性能差，建议使用 `vector` 进行替代。
 
 ```c++
 //没有clear函数
@@ -269,7 +280,7 @@ begin() / end()
 
 ```c++
 //没有clear函数
-priority_queue<int, vector<int>, greater<int> > p; //重定义为降序（小根堆）
+priority_queue<int, vector<int>, greater<int>> p; //重定义为降序（小根堆）
 push(x); //向栈顶插入x
 top(); //获取栈顶元素
 pop(); //弹出栈顶元素
@@ -306,7 +317,7 @@ find(x) / rfind(x); //顺序、逆序查找x，返回下标，没找到时返回
 默认升序（大根堆），$\tt set$ 去重，$\tt multiset$ 不去重，$\mathcal O(\log N)$ 。
 
 ```c++
-set<int, greater<> > s; //重定义为降序（小根堆）
+set<int, greater<>> s; //重定义为降序（小根堆）
 size() / empty() / clear()
 begin() / end()
 ++ / -- //返回前驱、后继
@@ -356,7 +367,7 @@ for (int i = 0; i < len; ++ i) {
 默认升序（大根堆），$\tt map$ 去重，$\tt mulitmap$ 不去重，$\mathcal O(logS)$ ，其中 $S$ 为元素数量。
 
 ```c++
-map<int, int, greater<> > mp; //重定义为降序（小根堆）
+map<int, int, greater<>> mp; //重定义为降序（小根堆）
 size() / empty() / clear()
 begin() / end()
 ++ / -- //返回前驱、后继
@@ -373,24 +384,24 @@ upper_cound(x); //返回第一个下标>x的迭代器
 - 当x为某一元素时，删除所有**以这个元素为下标的二元组**，复杂度为 $\mathcal O (num_x+logN)$ ；
 - 当x为迭代器时，删除这个迭代器。
 
-**慎用随机访问！**——当不确定某次查询是否存在于容器中时，不要直接使用下标查询，而是先使用 `count()` 或者 `find()` 方法检查key值，防止不必要的零值二元组被构造。
+**慎用随机访问！**——当不确定某次查询是否存在于容器中时，不要直接使用下标查询，而是先使用 `count()` 或者 `find()` 方法检查key值，防止不必要的零值二元组被构造。错误地构造大量零值二元组会极大程度地影响性能。
 
 ```c++
 int q = 0;
-if (mp.count(i)) q = mp[i];
+if (mp.find(i) != mp.end()) q = mp[i];
 ```
 
 慎用自带的 pair、tuple 作为key值类型！使用自定义结构体！
 
 ```c++
-struct fff { 
-    LL x, y;
-    friend bool operator < (const fff &a, const fff &b) {
+struct P { 
+    int x, y;
+    friend bool operator < (const P &a, const P &b) {
         if (a.x != b.x) return a.x < b.x;
         return a.y < b.y;
     }
 };
-map<fff, int> mp;
+map<P, int> mp;
 ```
 
 #### bitset
@@ -445,14 +456,14 @@ cout << B1 << " " << B2 << "\n"; //你可以直接使用cout输出
 #### 对 pair、tuple 定义哈希
 
 ```c++
-struct hash_pair { 
+struct myhash { 
     template <class T1, class T2> 
     size_t operator()(const pair<T1, T2> &p) const { 
-        return hash<T1>()(p.fi) ^ hash<T2>()(p.se); 
+        return hash<T1>()(p.first) ^ hash<T2>()(p.second); 
     } 
 };
-unordered_set<pair<int, int>, int, hash_pair> S;
-unordered_map<tuple<int, int, int>, int, hash_pair> M;
+unordered_set<pair<int, int>, int, myhash> S;
+unordered_map<tuple<int, int, int>, int, myhash> M;
 ```
 
 #### 对结构体定义哈希
