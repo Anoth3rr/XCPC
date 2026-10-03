@@ -16,6 +16,7 @@ template<class S, class T> using omap = __gnu_pbds::gp_hash_table<S, T, myhash>;
 
 `lower` 表示 $\ge$ ，`upper` 表示 $>$ 。使用前记得**先进行排序**。
 
+0
 ```c++
 //返回a数组[start,end)区间中第一个>=x的地址【地址！！！】
 cout << lower_bound(a + start, a + end, x);
@@ -60,7 +61,7 @@ iota(a + start, a + end, x);
 unique(a + start, a + end);
 
 //与earse函数结合，达到去重+删除的目的
-a.erase(unique(ALL(a)), a.end());
+a.erase(unique(a.begin(), a.end()), a.end());
 ```
 
 #### bit 库与位运算函数 \__builtin\_
@@ -79,23 +80,11 @@ bit_width(x) // 返回x二进制下的位数，9(1001) 返回 4，26(11010) 返�
 
 #### 数字转字符串函数
 
-`itoa` 虽然能将整数转换成任意进制的字符串，但是其不是标准的C函数，且为Windows独有，且不支持 `long long` ，建议手写。
-
 ```c++
 // to_string函数会直接将你的各种类型的数字转换为字符串。
 // string to_string(T val);
 double val = 12.12;
 cout << to_string(val);
-```
-
-```c++
-// 【不建议使用】itoa允许你将整数转换成任意进制的字符串，参数为待转换整数、目标字符数组、进制。
-// char* itoa(int value, char* string, int radix);
-char ans[10] = {};
-itoa(12, ans, 2);
-cout << ans << endl; /*1100*/
-
-// 长整型函数名ltoa，最高支持到int型上限2^31。ultoa同理。
 ```
 
 #### 字符串转数字
