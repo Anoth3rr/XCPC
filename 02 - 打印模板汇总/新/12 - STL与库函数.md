@@ -78,15 +78,6 @@ bit_width(x) // 返回x二进制下的位数，9(1001) 返回 4，26(11010) 返�
 
 注：以上函数的 $\tt{}long\ long$ 版本只需要在函数后面加上 `ll` 即可（例如 `__builtin_popcountll(x)` )， $\tt{}unsigned\ long\ long$ 加上 `ull` 。
 
-#### 数字转字符串函数
-
-```c++
-// to_string函数会直接将你的各种类型的数字转换为字符串。
-// string to_string(T val);
-double val = 12.12;
-cout << to_string(val);
-```
-
 #### 字符串转数字
 
 ```c++
@@ -151,15 +142,17 @@ do {
 ![](https://img2020.cnblogs.com/blog/2491503/202201/2491503-20220117162754548-696368550.png)
 
 - `stoll(字符串, 0, x进制)` ：将一串 $\tt{}x$ 进制的字符串转换为 $\tt{}long\ long$ 型数字。
-- $\tt{}stoull，stod，stold$ 同理。
+- `stoull，stod，stold` 同理。
 
 #### 数值转换为字符串函数 to\_string
 
 允许将**各种数值类型**转换为字符串类型。
 
 ```c++
-//将数值num转换为字符串s
-string s = to_string(num);
+// to_string函数会直接将你的各种类型的数字转换为字符串。
+// string to_string(T val);
+double val = 12.12;
+cout << to_string(val);
 ```
 
 #### 判断非递减 is\_sorted
@@ -192,7 +185,7 @@ vector<int>::reverse_iterator it; //创建一个反向迭代器，++ 操作时�
 
 `log2(x)` ：返回 $\log_2(x)$
 
-`gcd(x, y) / lcm(x, y)` ：以 $\log$ 的复杂度返回 $\gcd(|x|, |y|)$ 与 ${\tt lcm}(|x|, |y|)$ ，且返回值符号也为正数。
+`gcd(x, y) / lcm(x, y)` ：以 $\log$ 的复杂度返回 $\gcd(|x|, |y|)$ 与 ${\tt lcm}(|x|, |y|)$ ，且返回值符号也为正数。`gcd` 基于 $\tt{Stein}$ 算法，性能和稳定性均优于取模版欧几里得算法。
 
 ### 容器与成员函数
 
