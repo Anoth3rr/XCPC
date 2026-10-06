@@ -12,7 +12,6 @@ struct Comb {
         _fac.resize(m + 1);
         _ifac.resize(m + 1);
         _inv.resize(m + 1);
-
         for (int i = n + 1; i <= m; i++) {
             _fac[i] = _fac[i - 1] * i;
         }
@@ -23,17 +22,16 @@ struct Comb {
         }
         n = m;
     }
-
     Z fac(int m) {
-        if (m > n) init(2 * m);
+        if (m > n) init(m);
         return _fac[m];
     }
     Z ifac(int m) {
-        if (m > n) init(2 * m);
+        if (m > n) init(m);
         return _ifac[m];
     }
     Z inv(int m) {
-        if (m > n) init(2 * m);
+        if (m > n) init(m);
         return _inv[m];
     }
     Z P(int n, int m) {
