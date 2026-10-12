@@ -1,5 +1,4 @@
-vector<int> dis(n + 1, inf);
-auto dijkstra = [&](int s = 1) {
+auto dijkstra = [&](int s, vector<int> &dis) {
     priority_queue<pii, vector<pii>, greater<pii>> q;
     q.push({0, s});
     dis[s] = 0;
@@ -14,4 +13,4 @@ auto dijkstra = [&](int s = 1) {
             }
         }
     }
-}
+};
