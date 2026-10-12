@@ -1,32 +1,23 @@
-namespace Cantor {
-    constexpr int N = 10;
-    vector<int> f(N + 1);
-    void init() {
-        f[0] = f[1] = 1;
-        for (int i = 2; i <= n; ++i) f[i] = f[i - 1] * i;
+int f[20];
+void jie_cheng(int n) { // 打出1-n的阶乘表
+    f[0] = f[1] = 1; // 0的阶乘为1
+    for (int i = 2; i <= n; i++) f[i] = f[i - 1] * i;
+}
+string str;
+int kangtuo() {
+    int ans = 1; // 注意，因为 12345 是算作0开始计算的，最后结果要把12345看作是第一个
+    int len = str.length();
+    for (int i = 0; i < len; i++) {
+        int tmp = 0; // 用来计数的
+        // 计算str[i]是第几大的数，或者说计算有几个比他小的数
+        for (int j = i + 1; j < len; j++)
+            if (str[i] > str[j]) tmp++;
+        ans += tmp * f[len - i - 1];
     }
-    int rank(const vector<int> &p) {
-        int n = p.size(), rk = 1;
-        for (int i = 0; i < n; ++i) {
-            int cnt = 0;
-            for (int j = i + 1; j < n; ++j) cnt += p[j] < p[i];
-            rk += cnt * f[n - 1 - i];
-        }
-        return rk;
-    }
-
-    vector<int> perm(int n, int rk) {
-        vector<int> f(n + 1, 1);
-        for (int i = 1; i <= n; ++i) f[i] = f[i - 1] * i;
-        --rk;
-        vector<int> vis(n), p;
-        iota(vis.begin(), vis.end(), 1);
-        for (int rem = n; rem >= 1; --rem) {
-            int id = rk / f[rem - 1];
-            rk %= f[rem - 1];
-            p.push_back(vis[id]);
-            vis.erase(vis.begin() + id);
-        }
-        return p;
-    }
-}; // namespace Cantor
+    return ans;
+}
+int main() {
+    jie_cheng(10);
+    string str = "52413";
+    cout << kangtuo() << endl;
+}

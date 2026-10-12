@@ -3,7 +3,7 @@ struct BIT2d {
     vector<vector<int>> w;
 
     BIT2d(int n, int m) : n(n), m(m), w(n + 1, vector<int>(m + 1)) {}
-    void add(int x, int y, int p) { 
+    void add(int x, int y, int p) {
         for (int i = x; i <= n; i += i & -i) {
             for (int j = y; j <= m; j += j & -j) {
                 w[i][j] += p;

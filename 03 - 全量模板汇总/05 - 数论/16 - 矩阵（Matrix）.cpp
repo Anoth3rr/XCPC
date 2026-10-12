@@ -1,97 +1,63 @@
-template <class T> struct Matrix {
-    int n, m;
-    vector<vector<T>> a;
-
-    Matrix(int n = 0, int m = 0, T val = T()) : n(n), m(m), a(n, vector<T>(m, val)) {}
-
-    static Matrix identity(int n) {
-        Matrix I(n, n);
-        for (int i = 0; i < n; ++i) I.a[i][i] = T(1);
-        return I;
+const int SIZE = 2;
+struct Matrix {
+    ll M[SIZE + 5][SIZE + 5];
+    void clear() { memset(M, 0, sizeof(M)); }
+    void reset() { //初始化
+        clear();
+        for (int i = 1; i <= SIZE; ++i) M[i][i] = 1;
     }
-
-    vector<T> &operator[](int i) {
-        return a[i];
+    Matrix friend operator*(const Matrix &A, const Matrix &B) {
+        Matrix Ans;
+        Ans.clear();
+        for (int i = 1; i <= SIZE; ++i)
+            for (int j = 1; j <= SIZE; ++j)
+                for (int k = 1; k <= SIZE; ++k)
+                    Ans.M[i][j] = (Ans.M[i][j] + A.M[i][k] * B.M[k][j]) % mod;
+        return Ans;
     }
-    const vector<T> &operator[](int i) const {
-        return a[i];
-    }
-
-    Matrix operator+(const Matrix &other) const {
-        assert(n == other.n && m == other.m);
-        Matrix res(n, m);
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < m; ++j) res[i][j] = a[i][j] + other[i][j];
-        return res;
-    }
-
-    Matrix operator-(const Matrix &other) const {
-        assert(n == other.n && m == other.m);
-        Matrix res(n, m);
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < m; ++j) res[i][j] = a[i][j] - other[i][j];
-        return res;
-    }
-
-    Matrix operator*(const Matrix &other) const {
-        assert(m == other.n);
-        Matrix res(n, other.m, T(0));
-        for (int i = 0; i < n; ++i)
-            for (int k = 0; k < m; k++)
-                for (int j = 0; j < other.m; ++j) res[i][j] = res[i][j] + a[i][k] * other[k][j];
-        return res;
-    }
-
-    Matrix operator*(const T &k) const {
-        Matrix res(n, m);
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < m; ++j) res[i][j] = a[i][j] * k;
-        return res;
-    }
-
-    Matrix transpose() const {
-        Matrix res(m, n);
-        for (int i = 0; i < n; ++i)
-            for (int j = 0; j < m; ++j) res[j][i] = a[i][j];
-        return res;
-    }
-
-    Matrix power(int b) const {
-        assert(n == m);
-        Matrix a = *this;
-        Matrix r = identity(n);
-        for (; b; b >>= 1, a = a * a)
-            if (b & 1) r = r * a;
-        return r;
+    Matrix friend operator+(const Matrix &A, const Matrix &B) {
+        Matrix Ans;
+        Ans.clear();
+        for (int i = 1; i <= SIZE; ++i)
+            for (int j = 1; j <= SIZE; ++j)
+                Ans.M[i][j] = (A.M[i][j] + B.M[i][j]) % mod;
+        return Ans;
     }
 };
 
-Matrix<int> inverse(Matrix<T> a, int mod) {
-    int n = a.n;
-    Matrix<int> b = Matrix<int>::identity(n);
-
-    for (int i = 0; i < n; ++i) {
-        int p = i;
-        while (p < n && a[p][i] % mod == 0) ++p;
-        if (p == n) return {};
-
-        swap(a[p], a[i]);
-        swap(b[p], b[i]);
-
-        int iv = power((a[i][i] % mod + mod) % mod, mod - 2, mod);
-        for (int j = 0; j < n; ++j) {
-            a[i][j] = a[i][j] * iv % mod;
-            b[i][j] = b[i][j] * iv % mod;
-        }
-
-        for (int k = 0; k < n; ++k) {
-            if (k == i) continue;
-            int c = a[k][i];
-            for (int j = 0; j < n; ++j) {
-                a[k][j] = (a[k][j] - c * a[i][j] % mod + mod) % mod;
-                b[k][j] = (b[k][j] - c * b[i][j] % mod + mod) % mod;
-            }
-        }
+inline int mypow(LL n, LL k, int p = MOD) {
+    LL r = 1;
+    for (; k; k >>= 1, n = n * n % p) {
+        if (k & 1) r = r * n % p;
     }
-    return b;
+    return r;
+}
+bool ok = 1;
+Matrix getinv(Matrix a) { //矩阵求逆
+    int n = SIZE, m = SIZE * 2;
+    for (int i = 1; i <= n; i++) a.M[i][i + n] = 1;
+    for (int i = 1; i <= n; i++) {
+        int pos = i;
+        for (int j = i + 1; j <= n; j++)
+            if (abs(a.M[j][i]) > abs(a.M[pos][i])) pos = j;
+        if (i != pos) swap(a.M[i], a.M[pos]);
+        if (!a.M[i][i]) {
+            puts("No Solution");
+            ok = 0;
+        }
+        ll inv = q_pow(a.M[i][i], mod - 2);
+        for (int j = 1; j <= n; j++)
+            if (j != i) {
+                ll mul = a.M[j][i] * inv % mod;
+                for (int k = i; k <= m; k++)
+                    a.M[j][k] = ((a.M[j][k] - a.M[i][k] * mul) % mod + mod) % mod;
+            }
+        for (int j = 1; j <= m; j++) a.M[i][j] = a.M[i][j] * inv % mod;
+    }
+    Matrix res;
+    res.clear();
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++) 
+            res.M[i][j] = a.M[i][n + j];
+    return res;
 }

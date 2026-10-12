@@ -21,12 +21,8 @@ template <int P> struct MInt {
     }
 
     constexpr int norm(int x) const {
-        if (x < 0) {
-            x += getMod();
-        }
-        if (x >= getMod()) {
-            x -= getMod();
-        }
+        if (x < 0) x += getMod();
+        if (x >= getMod()) x -= getMod();
         return x;
     }
 

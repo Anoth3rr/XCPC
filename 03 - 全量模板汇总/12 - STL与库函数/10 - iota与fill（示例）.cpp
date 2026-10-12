@@ -1,0 +1,3 @@
+iota(a.begin(), a.end(), x); // 赋值为 x, x+1, x+2, ...
+
+fill(a.begin(), a.end(), x); // 赋值为 x

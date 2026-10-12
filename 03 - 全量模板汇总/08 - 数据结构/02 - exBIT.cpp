@@ -12,7 +12,7 @@ struct exBIT {
         };
         Add(l, v), Add(r + 1, -v);
     }
-    
+
     int ask(int l, int r) {
         auto sum = [&](int x) {
             int ans = 0;

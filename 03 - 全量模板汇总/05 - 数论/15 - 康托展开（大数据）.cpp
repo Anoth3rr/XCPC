@@ -1,42 +1,43 @@
-struct BIT {
-    int n{};
-    vector<int> w;
-
-    BIT(int _n) : n(_n), w(_n + 1) {}
-
-    void add(int x, const int &k) {
-        for (; x <= n; x += x & -x) {
-            w[x] += k;
-        }
+#include <bits/stdc++.h>
+using namespace std;
+#define LL long long
+const int mod = 998244353, N = 1e6 + 10;
+LL fact[N];
+struct fwt{
+    LL n;
+    vector <LL> a;
+    fwt(LL n) : n(n), a(n + 1) {}
+    LL sum(LL x){
+        LL res = 0;
+        for (; x; x -= x & -x)
+            res += a[x];
+        return res;
     }
-    int ask(int x) const {
-        int ans = 0;
-        for (; x; x -= x & -x) {
-            ans += w[x];
-        }
-        return ans;
+    void add(LL x, LL k){
+        for (; x <= n; x += x & -x)
+            a[x] += k;
     }
-    int ask(int x, int y) const {
-        return ask(y) - ask(x - 1);
+    LL query(LL x, LL y){
+        return sum(y) - sum(x - 1);
     }
 };
-
-void solve() {
-    int n;
+int main(){
+    ios::sync_with_stdio(false);cin.tie(0);
+    LL n;
     cin >> n;
-    BIT a(n);
-    vector<int> f(n + 1);
-    f[0] = 1;
-    for (int i = 1; i <= n; i++) {
-        f[i] = f[i - 1] * i % mod;
+    fwt a(n);
+    fact[0] = 1;
+    for (int i = 1; i <= n; i ++ ){
+        fact[i] = fact[i - 1] * i % mod;
         a.add(i, 1);
     }
-    int ans = 0;
-    for (int i = 1; i <= n; i++) {
-        int x;
+    LL ans = 0;
+    for (int i = 1; i <= n; i ++ ){
+        LL x;
         cin >> x;
-        ans = (ans + a.query(1, x - 1) * f[n - i] % mod) % mod;
+        ans = (ans + a.query(1, x - 1) * fact[n - i] % mod ) % mod;
         a.add(x, -1);
     }
-    cout << (ans + 1) % mod << endl;
+    cout << (ans + 1) % mod << "\n";
+    return 0;
 }

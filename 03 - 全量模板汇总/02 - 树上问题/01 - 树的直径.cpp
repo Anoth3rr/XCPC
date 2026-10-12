@@ -6,7 +6,7 @@ struct Tree {
         g[u].push_back(v);
         g[v].push_back(u);
     }
-    array<int, 3> getlen(int root = 1) const {
+    array<int, 3> getlen(int root) const {
         vector<int> dep(n + 1, -1);
         auto dfs = [&](int s, int fa) {
             vector<pii> st = {{s, fa}};

@@ -1,131 +1,70 @@
-constexpr int mod = 998244353;
-
-template <class T> T power(T a, int b) {
-    T r = T(1);
-    for (; b; a *= a, b >>= 1)
-        if (b & 1) r *= a;
-    return r;
-}
-
 struct Barrett {
-    using u128 = uint128_t;
-    using u64 = uint64_t;
-    int m;
-    u128 B;
-    Barrett(int m = 2) : m(m), B((u128(1) << 64) / m) {}
-    friend int operator%(int a, const Barrett &mod) {
-        u64 x = a < 0 ? -a : a;
-        u64 q = mod.B * x >> 64;
-        u64 r = x - q * mod.m;
-        if (r >= mod.m) r -= mod.m;
-        int ans = r;
-        return a < 0 ? -ans : ans;
-    }
-    friend int operator%=(int &a, const Barrett &mod) {
-        return a = a % mod;
-    }
-    friend int operator+(const int a, const Barrett &mod) {
-        return a + mod.m;
-    }
-    friend int operator-(const int a, const Barrett &mod) {
-        return a - mod.m;
-    }
-    friend int operator-(const Barrett &mod, const int a) {
-        return mod.m - a;
-    }
-    friend int operator/(const Barrett &mod, const int a) {
-        return mod.m / a;
-    }
-    friend int operator%(const Barrett &mod, const int a) {
-        return mod.m % a;
+    uint32_t m;
+    uint64_t im;
+    Barrett(uint32_t m = 1) : m(m), im(uint64_t(-1) / m + 1) {}
+    uint32_t mul(uint32_t a, uint32_t b) const {
+        uint64_t z = uint64_t(a) * b;
+        uint64_t q = __uint128_t(z) * im >> 64;
+        uint32_t y = z - q * m;
+        return y < m ? y : uint32_t(y + m);
     }
 };
 
-template <int P> struct MInt {
-    int x;
-    inline static constexpr Barrett Mod{P};
-
-    constexpr MInt() : x{} {}
-    constexpr MInt(int x) : x{norm(x)} {}
-
-    constexpr int norm(int x) const {
-        if (x < 0) {
-            x = x + Mod;
-        }
-        if (x >= P) {
-            x = x - Mod;
-        }
+template <int id = 0> struct MInt {
+    inline static Barrett B;
+    uint32_t x;
+    MInt(i64 v = 0) : x(norm(v)) {}
+    static void setMod(int m) {
+        assert(1 < m && m < (1LL << 31));
+        B = Barrett(m);
+    }
+    static int getMod() {
+        return B.m;
+    }
+    static uint32_t norm(int v) {
+        v %= getMod();
+        return v < 0 ? v + getMod() : v;
+    }
+    int val() const {
         return x;
     }
-
-    constexpr int val() const {
-        return x;
+    MInt pow(int k) const {
+        assert(k >= 0);
+        MInt a = *this, r = 1;
+        for (; k; k >>= 1, a *= a)
+            if (k & 1) r *= a;
+        return r;
     }
-    explicit constexpr operator int() const {
-        return x;
+    MInt inv() const {
+        assert(x);
+        return pow(getMod() - 2);
     }
-
-    constexpr MInt operator-() const {
-        MInt res;
-        res.x = norm(P - x);
-        return res;
-    }
-    constexpr MInt inv() const {
-        assert(x != 0);
-        return power(*this, P - 2);
-    }
-    constexpr MInt &operator*=(MInt rhs) & {
-        x = 1LL * x * rhs.x % Mod;
+    MInt operator-() const { return x ? MInt(getMod() - x) : MInt(0); }
+    MInt &operator+=(MInt v) {
+        x += v.x;
+        if (x >= B.m) x -= B.m;
         return *this;
     }
-    constexpr MInt &operator+=(MInt rhs) & {
-        x = norm(x + rhs.x);
+    MInt &operator-=(MInt v) {
+        x = x >= v.x ? x - v.x : x + B.m - v.x;
         return *this;
     }
-    constexpr MInt &operator-=(MInt rhs) & {
-        x = norm(x - rhs.x);
+    MInt &operator*=(MInt v) {
+        x = B.mul(x, v.x);
         return *this;
     }
-    constexpr MInt &operator/=(MInt rhs) & {
-        return *this *= rhs.inv();
+    MInt &operator/=(MInt v) { return *this *= v.inv(); }
+    friend MInt operator+(MInt a, MInt b) { return a += b; }
+    friend MInt operator-(MInt a, MInt b) { return a -= b; }
+    friend MInt operator*(MInt a, MInt b) { return a *= b; }
+    friend MInt operator/(MInt a, MInt b) { return a /= b; }
+    friend bool operator==(MInt a, MInt b) { return a.x == b.x; }
+    friend bool operator!=(MInt a, MInt b) { return a.x != b.x; }
+    friend istream &operator>>(istream &in, MInt &a) {
+        i64 v;
+        in >> v;
+        a = v;
+        return in;
     }
-    friend constexpr MInt operator*(MInt lhs, MInt rhs) {
-        MInt res = lhs;
-        res *= rhs;
-        return res;
-    }
-    friend constexpr MInt operator+(MInt lhs, MInt rhs) {
-        MInt res = lhs;
-        res += rhs;
-        return res;
-    }
-    friend constexpr MInt operator-(MInt lhs, MInt rhs) {
-        MInt res = lhs;
-        res -= rhs;
-        return res;
-    }
-    friend constexpr MInt operator/(MInt lhs, MInt rhs) {
-        MInt res = lhs;
-        res /= rhs;
-        return res;
-    }
-    friend constexpr istream &operator>>(istream &is, MInt &a) {
-        int v;
-        is >> v;
-        a = MInt(v);
-        return is;
-    }
-    friend constexpr ostream &operator<<(ostream &os, const MInt &a) {
-        return os << a.val();
-    }
-    friend constexpr bool operator==(MInt lhs, MInt rhs) {
-        return lhs.val() == rhs.val();
-    }
-    friend constexpr bool operator!=(MInt lhs, MInt rhs) {
-        return lhs.val() != rhs.val();
-    }
+    friend ostream &operator<<(ostream &out, MInt a) { return out << a.x; }
 };
-
-template <int V, int P> const MInt<P> IV = MInt<P>(V).inv();
-
-using Z = MInt<mod>;
