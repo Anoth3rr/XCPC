@@ -955,6 +955,52 @@ if (it != os.end()) cout << *it << '\n'; // 5
 int rank = os.order_of_key(6); // 小于 6 的元素个数：2
 ```
 
+##### 可重集用法（排名、第 k 小与前后继）
+
+沿用上方头文件。第三个模板参数决定排序方向，`less<V>` 为升序；重复值用“值、编号”二元组区分。
+
+> 附常见成员函数：
+>
+> ```c++
+> empty() / size()
+> insert(x) // 插入元素x
+> erase(x) // 删除元素/迭代器x
+> order_of_key(x) // 返回元素x的排名
+> find_by_order(x) // 返回排名为x的元素迭代器
+> lower_bound(x) / upper_bound(x) // 返回迭代器
+> join(Tree) // 将Tree树的全部元素并入当前的树
+> split(x, Tree) // 将大于x的元素放入Tree树
+> ```
+
+```c++
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using V = pair<int, int>;
+tree<V, null_type, less<V>, rb_tree_tag, tree_order_statistics_node_update> ver;
+map<int, int> dic;
+
+int n; cin >> n;
+for (int i = 1, op, x; i <= n; ++i) {
+    cin >> op >> x;
+    if (op == 1) { // 插入一个元素x，允许重复
+        ver.insert({x, ++dic[x]});
+    } else if (op == 2) { // 删除元素x，若有重复，则任意删除一个
+        ver.erase({x, dic[x]--});
+    } else if (op == 3) { // 查询元素x的排名（排名定义为比当前数小的数的个数+1）
+        cout << ver.order_of_key({x, 1}) + 1 << endl;
+    } else if (op == 4) { // 查询排名为x的元素
+        cout << ver.find_by_order(--x)->first << endl;
+    } else if (op == 5) { // 查询元素x的前驱
+        int idx = ver.order_of_key({x, 1}) - 1; // 无论x存不存在，idx都代表x的位置，需要-1
+        cout << ver.find_by_order(idx)->first << endl;
+    } else if (op == 6) { // 查询元素x的后继
+        int idx = ver.order_of_key( {x, dic[x]}); // 如果x不存在，那么idx就是x的后继
+        if (ver.find({x, 1}) != ver.end()) idx++; // 如果x存在，那么idx是x的位置，需要+1
+        cout << ver.find_by_order(idx)->first << endl;
+    }
+}
+```
+
 ### 程序标准化
 
 #### Lambda 与比较器
