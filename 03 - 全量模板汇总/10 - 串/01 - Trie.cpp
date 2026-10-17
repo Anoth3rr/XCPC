@@ -1,37 +1,83 @@
-struct Trie {
-    int ch[N][63], cnt[N], idx = 0;
-    map<char, int> mp;
-    void init() {
-        LL id = 0;
-        for (char c = 'a'; c <= 'z'; c++) mp[c] = ++id;
-        for (char c = 'A'; c <= 'Z'; c++) mp[c] = ++id;
-        for (char c = '0'; c <= '9'; c++) mp[c] = ++id;
+template <int A = 26, char F = 'a'> struct Trie {
+    struct Node {
+        array<int, A> to{};
+        int ps = 0, ed = 0;
+    };
+
+    vector<Node> tr;
+
+    Trie() {
+        clear();
     }
-    void insert(string s) {
+
+    void clear() {
+        tr.assign(1, Node());
+    }
+
+    int id(char c) const {
+        int x = c - F;
+        return x;
+    }
+
+    void insert(const string &s) {
         int u = 0;
-        for (int i = 0; i < s.size(); i++) {
-            int v = mp[s[i]];
-            if (!ch[u][v]) ch[u][v] = ++idx;
-            u = ch[u][v];
-            cnt[u]++;
-        }
-    }
-    LL query(string s) {
-        int u = 0;
-        for (int i = 0; i < s.size(); i++) {
-            int v = mp[s[i]];
-            if (!ch[u][v]) return 0;
-            u = ch[u][v];
-        }
-        return cnt[u];
-    }
-    void Clear() {
-        for (int i = 0; i <= idx; i++) {
-            cnt[i] = 0;
-            for (int j = 0; j <= 62; j++) {
-                ch[i][j] = 0;
+        ++tr[u].ps;
+        for (char c : s) {
+            int v = id(c);
+            if (!tr[u].to[v]) {
+                tr[u].to[v] = tr.size();
+                tr.emplace_back();
             }
+            u = tr[u].to[v];
+            ++tr[u].ps;
         }
-        idx = 0;
+        ++tr[u].ed;
     }
-} trie;
+
+    bool erase(const string &s) {
+        int u = 0;
+        vector<int> p{0};
+        for (char c : s) {
+            int v = id(c);
+            if (!tr[u].to[v]) return false;
+            u = tr[u].to[v];
+            p.push_back(u);
+        }
+        if (!tr[u].ed) return false;
+        --tr[u].ed;
+        for (int v : p) --tr[v].ps;
+        return true;
+    }
+
+    int ask(const string &s) const {
+        int u = 0;
+        for (char c : s) {
+            int v = id(c);
+            if (!tr[u].to[v]) return 0;
+            u = tr[u].to[v];
+        }
+        return tr[u].ed;
+    }
+
+    int pre(const string &s) const {
+        int u = 0;
+        for (char c : s) {
+            int v = id(c);
+            if (!tr[u].to[v]) return 0;
+            u = tr[u].to[v];
+        }
+        return tr[u].ps;
+    }
+
+    int max() const {
+        int r = 0;
+        auto dfs = [&](auto &&self, int u, int d) -> void {
+            d += tr[u].ed > 0;
+            r = max(r, d);
+            for (int v : tr[u].to)
+                if (v && tr[v].ps) self(self, v, d);
+        };
+        dfs(dfs, 0, 0);
+        return r;
+    }
+};
