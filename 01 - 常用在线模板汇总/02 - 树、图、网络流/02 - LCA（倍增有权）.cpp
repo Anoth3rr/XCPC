@@ -2,7 +2,7 @@ constexpr int inf = 2e18 + 9;
 
 struct Tree {
     int n, lg, tim;
-    vector<vector<int>> up, Max;
+    vector<vector<int>> up, val;
     vector<vector<pii>> g;
     vector<int> dep, tin, tout, dist;
 
@@ -10,7 +10,7 @@ struct Tree {
         lg = 1;
         while ((1LL << lg) <= n) ++lg;
         up.assign(n + 1, vector<int>(lg));
-        Max.assign(n + 1, vector<int>(lg, -inf));
+        val.assign(n + 1, vector<int>(lg, inf));
     }
 
     void add(int u, int v, int w) {
@@ -18,29 +18,28 @@ struct Tree {
         g[v].push_back({u, w});
     }
 
-    void dfs(int u, int fa) {
-        up[u][0] = fa;
-        for (int k = 1; k < lg; ++k) {
-            up[u][k] = up[up[u][k - 1]][k - 1];
-            Max[u][k] = max(Max[u][k - 1], Max[up[u][k - 1]][k - 1]);
-        }
-        tin[u] = ++tim;
-        for (auto [v, w] : g[u]) {
-            if (v == fa) continue;
-            dep[v] = dep[u] + 1;
-            dist[v] = dist[u] + w;
-            Max[v][0] = w;
-            dfs(v, u);
-        }
-        tout[u] = tim;
-    }
-
     void work(int root = 1) {
         tim = 0;
         dep[root] = 0;
         dist[root] = 0;
-        Max[root][0] = -inf;
-        dfs(root, 0);
+        val[root][0] = inf;
+        auto dfs = [&](auto &&self, int u, int fa) -> void {
+            up[u][0] = fa;
+            for (int k = 1; k < lg; ++k) {
+                up[u][k] = up[up[u][k - 1]][k - 1];
+                val[u][k] = min(val[u][k - 1], val[up[u][k - 1]][k - 1]);
+            }
+            tin[u] = ++tim;
+            for (auto [v, w] : g[u]) {
+                if (v == fa) continue;
+                dep[v] = dep[u] + 1;
+                dist[v] = dist[u] + w;
+                val[v][0] = w;
+                self(self, v, u);
+            }
+            tout[u] = tim;
+        };
+        dfs(dfs, root, 0);
     }
 
     int jmp(int u, int k) const {
@@ -68,20 +67,20 @@ struct Tree {
     }
 
     int getup(int u, int k) const {
-        int r = -inf;
+        int r = inf;
         for (int i = 0; i < lg; ++i) {
             if ((k >> i) & 1) {
-                r = max(r, Max[u][i]);
+                r = min(r, val[u][i]);
                 u = up[u][i];
             }
         }
         return r;
     }
 
-    int getmax(int x, int y) const {
+    int get(int x, int y) const {
         if (x == y) return 0;
         int p = lca(x, y);
-        return max(getup(x, dep[x] - dep[p]), getup(y, dep[y] - dep[p]));
+        return min(getup(x, dep[x] - dep[p]), getup(y, dep[y] - dep[p]));
     }
 
     int kth(int x, int y, int k) const {
