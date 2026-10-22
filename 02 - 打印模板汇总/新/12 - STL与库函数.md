@@ -318,6 +318,19 @@ i64 x = atoll(s.c_str());
 
 ### 常用容器
 
+#### array
+
+`array<T, n>` 是定长数组，$n$ 必须是编译期常量；相比原生数组，它带有迭代器、`size`、`fill` 等标准接口。
+
+```c++
+array<int, 4> a;
+a.fill(3);
+a[1] = 8;
+
+sort(a.begin(), a.end());
+cout << a.size() << ' ' << a.front() << ' ' << a.back() << '\n';
+```
+
 #### vector
 
 `vector` 是最常用的动态数组，支持随机访问，尾部插入通常为均摊 `O(1)`。
@@ -450,6 +463,10 @@ tie(x, y) = pair{1, 2};
 tie(x, ignore, y) = tuple{3, 4, 5};
 ```
 
+#### optional
+
+`optional<T>` 表示一个可为空的 `T` 类型值，默认无值，也可用 `nullopt` 表示无值。`if (x)` 判断是否有值（值为 `0` 也为真），确认有值后用 `*x` 取值；`x.value_or(v)` 在有值时返回该值，否则返回 `v`。
+
 #### struct
 
 `struct` 的成员默认公开，适合表示多字段状态。需要直接用于默认 `sort`、`set`、`map` 比较时定义 `operator<`；作为 `unordered` 容器的 `key` 时，需要比较全部 `key` 字段的 `operator==` 与后文的哈希函数。
@@ -488,19 +505,6 @@ auto operator<=>(const State &o) const {
     return tie(y, x, z) <=> tie(o.y, o.x, o.z);
 }
 bool operator==(const State &) const = default;
-```
-
-#### array
-
-`array<T, n>` 是定长数组，$n$ 必须是编译期常量；相比原生数组，它带有迭代器、`size`、`fill` 等标准接口。
-
-```c++
-array<int, 4> a;
-a.fill(3);
-a[1] = 8;
-
-sort(a.begin(), a.end());
-cout << a.size() << ' ' << a.front() << ' ' << a.back() << '\n';
 ```
 
 #### stack
@@ -667,8 +671,6 @@ for (int i = b._Find_first(); i < b.size(); i = b._Find_next(i)) {
     cout << i << ' ' ;
 }
 ```
-
-
 
 ### 关联容器
 
@@ -957,7 +959,7 @@ int rank = os.order_of_key(6); // 小于 6 的元素个数：2
 
 ##### 可重集用法（排名、第 k 小与前后继）
 
-沿用上方头文件。第三个模板参数决定排序方向，`less<V>` 为升序；重复值用“值、编号”二元组区分。
+第三个模板参数决定排序方向，`less<V>` 为升序；重复值用“值、编号”二元组区分。
 
 > 附常见成员函数：
 >
@@ -1085,5 +1087,4 @@ int __FAST_IO__ = []() { // 函数名称可以随意修改
     return 0;
 }();
 ```
-
 <div style="page-break-after:always">/END/</div>
